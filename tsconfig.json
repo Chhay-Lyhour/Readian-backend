@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "commonjs",
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "resolveJsonModule": true,
+    // Optional additions:
+    "skipLibCheck": true, // Faster builds
+    "sourceMap": true, // Better debugging
+    "declaration": true, // Generate .d.ts files
+    "removeComments": true, // Cleaner output
+    "noImplicitReturns": true, // Catch missing returns
+    "noFallthroughCasesInSwitch": true // Catch switch fallthrough
+  },
+  "include": ["src/**/*"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts", // Exclude test files
+    "**/*.spec.ts" // Exclude spec files
+  ],
+  "ts-node": {
+    "files": true
+  }
+}
