@@ -1,24 +1,34 @@
 {
-  "name": "backend",
+  "name": "readian",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "dev": "tsx watch src/server.ts"
-  },
+  "description": "connnect mongodb with express",
   "keywords": [],
-  "author": "",
+  "homepage": "https://github.com/Chhay-Lyhour/Readian-backend#readme",
+  "bugs": {
+    "url": "https://github.com/Chhay-Lyhour/Readian-backend/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Chhay-Lyhour/Readian-backend.git"
+  },
   "license": "ISC",
-  "type": "commonjs",
+  "author": "chhaylyhour",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "dev": "nodemon src/server.js"
+  },
   "dependencies": {
     "dotenv": "^17.2.3",
-    "express": "^5.1.0",
-    "tsx": "^4.20.6",
-    "typescript": "^5.9.3"
+    "express": "^4.21.2",
+    "mongodb": "^6.20.0",
+    "mongoose": "^8.19.0",
+    "tsx": "^4.20.6"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
-    "@types/node": "^24.6.2"
+    "@types/node": "^24.6.2",
+    "nodemon": "^3.1.10"
   }
 }
