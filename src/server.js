@@ -1,7 +1,10 @@
-import express from "express";
+import express, { response } from "express";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import bookRoute from "./routes/book.route.js";
+import userRoute from "./routes/user.route.js";
+import { clerkClient } from "@clerk/express";
+
 const app = express();
 
 // middleware
@@ -10,15 +13,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 //routes
-
 app.use("/api/books", bookRoute);
+app.use("/api/users", userRoute);
 
 dotenv.config();
 const port = process.env.PORT || 3000;
 
-app.get("/", (req, res) => {
-  res.send("Hello from Node API server updated");
-});
+app.post("/", async (req, res) => {});
 
 // database
 
@@ -35,17 +36,4 @@ mongoose
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
-});
-
-// USER
-const userSchema = new mongoose.Schema({
-  name: String,
-  age: Number,
-  email: String,
-  password: String,
-});
-const UserModel = mongoose.model("User", userSchema);
-app.get("/getUsers", async (req, res) => {
-  const userData = await UserModel.find();
-  res.json(userData);
 });
