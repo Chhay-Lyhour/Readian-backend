@@ -1,51 +1,42 @@
 import express from "express";
 import dotenv from "dotenv";
-import mongoose from "mongoose";
-import bookRoute from "./routes/book.route.js";
+import bookRoute from "./routes/bookRoute.js";
+import cors from "cors";
+import helmet from "helmet";
+import authRouter from "./routes/authRoute.js";
+import {
+  errorHandler,
+  notFoundHandler,
+} from "./middlewares/errorHandlingMiddleware.js";
+import { config } from "./config/config.js";
+import { connectDB } from "./config/db.js";
+
+dotenv.config();
 const app = express();
+const port = config.port;
 
-// middleware
+// Connect to MongoDB
+connectDB();
 
+// Global Middlewares
+app.use(helmet());
+app.use(cors({ origin: config.frontendUrl, credentials: true }));
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: true }));
 
 //routes
 
 app.use("/api/books", bookRoute);
-
-dotenv.config();
-const port = process.env.PORT || 3000;
+app.use("/api/auth", authRouter);
 
 app.get("/", (req, res) => {
   res.send("Hello from Node API server updated");
 });
 
-// database
-
-const mongoUrl =
-  "mongodb+srv://chhaylyhour425_db_user:kovF91UvlkdtB8eS@readiandb.xsnzrha.mongodb.net/Node-API?retryWrites=true&w=majority&appName=readiandb";
-mongoose
-  .connect(mongoUrl)
-  .then(() => {
-    console.log("Connected to MongoDB");
-  })
-  .catch((err) => {
-    console.log(err);
-  });
+// Error Handlingi
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
-});
-
-// USER
-const userSchema = new mongoose.Schema({
-  name: String,
-  age: Number,
-  email: String,
-  password: String,
-});
-const UserModel = mongoose.model("User", userSchema);
-app.get("/getUsers", async (req, res) => {
-  const userData = await UserModel.find();
-  res.json(userData);
 });
