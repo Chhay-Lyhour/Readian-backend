@@ -1,5 +1,6 @@
-import mongoose from "mongoose";
-const bookSchema = new mongoose.Schema(
+import { Schema, model } from "mongoose";
+
+const bookSchema = new Schema(
   {
     title: {
       type: String,
@@ -31,6 +32,6 @@ const bookSchema = new mongoose.Schema(
   }
 );
 
-const BookModel = mongoose.model("Book", bookSchema);
+const BookModel = model("Book", bookSchema);
 
 export default BookModel;

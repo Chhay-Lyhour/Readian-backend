@@ -84,6 +84,4 @@ router.get("/admin-only", requireRole(["ADMIN"]), (req, res) => {
   );
 });
 
-const authRouter = router;
-
-export default authRouter;
+export default router;
