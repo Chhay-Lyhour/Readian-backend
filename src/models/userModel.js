@@ -1,7 +1,7 @@
 import { Schema, model } from "mongoose";
 
 // In JS, we define enums as an array of strings for validation
-const UserRole = ["BUYER", "SELLER", "ADMIN"];
+const UserRole = ["READER", "AUTHOR", "ADMIN"];
 
 const userSchema = new Schema(
   {
@@ -14,7 +14,7 @@ const userSchema = new Schema(
       trim: true,
     },
     password: { type: String, required: true, select: false }, // Hide by default
-    role: { type: String, enum: UserRole, default: "BUYER" },
+    role: { type: String, enum: UserRole, default: "READER" },
     email_verified: { type: Boolean, default: false },
     last_login: { type: Date, default: null },
   },
