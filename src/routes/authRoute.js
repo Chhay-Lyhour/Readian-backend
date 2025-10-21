@@ -19,6 +19,12 @@ import {
   registerRequestSchema,
   loginRequestSchema,
   verifyEmailRequestSchema,
+  refreshTokenRequestSchema,
+  changePasswordRequestSchema,
+  forgotPasswordRequestSchema,
+  resetPasswordRequestSchema,
+  resendVerificationEmailSchema,
+  verifyResetCodeRequestSchema,
 } from "../dto/authValidationSchemas.js";
 import { sendSuccessResponse } from "../utils/responseHandler.js";
 
@@ -31,20 +37,44 @@ router.post(
   validateRequestBody(verifyEmailRequestSchema),
   verifyEmailAddress
 );
+router.post(
+  "/resend-verification",
+  validateRequestBody(resendVerificationEmailSchema),
+  resendVerificationCodeController
+);
 router.post("/login", validateRequestBody(loginRequestSchema), login);
+router.post(
+  "/forgot-password",
+  validateRequestBody(forgotPasswordRequestSchema),
+  forgotPasswordController
+);
+router.post(
+  "/verify-password-reset-code",
+  validateRequestBody(verifyResetCodeRequestSchema),
+  verifyPasswordResetCodeController
+);
+router.post(
+  "/reset-password",
+  validateRequestBody(resetPasswordRequestSchema),
+  resetPasswordController
+);
 
 // --- Protected Routes ---
 router.use(requireAuth); // All routes below this will be protected
 
 router.get("/me", getCurrentUser);
-router.post("/resend-verification", resendVerificationCodeController);
-router.post("/refresh-token", refreshToken);
-router.post("/logout", logout);
+router.post(
+  "/refresh-token",
+  validateRequestBody(refreshTokenRequestSchema),
+  refreshToken
+);
+router.post("/logout", validateRequestBody(refreshTokenRequestSchema), logout);
 router.post("/logout-all-devices", logoutAllDevices);
-router.post("/forgot-password", forgotPasswordController);
-router.post("/verify-password-reset-code", verifyPasswordResetCodeController);
-router.post("/reset-password", resetPasswordController);
-router.post("/change-password", changePasswordController);
+router.post(
+  "/change-password",
+  validateRequestBody(changePasswordRequestSchema),
+  changePasswordController
+);
 
 router.get("/admin-only", requireRole(["ADMIN"]), (req, res) => {
   sendSuccessResponse(

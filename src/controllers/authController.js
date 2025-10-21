@@ -12,6 +12,7 @@ import {
   resetPassword,
   changePassword,
 } from "../services/authService.js";
+import { findUserById } from "../repositories/authRepositories.js";
 import { AppError } from "../utils/errorHandler.js";
 
 // A simple wrapper for async controller functions to catch errors
@@ -38,7 +39,7 @@ const getCurrentUser = asyncHandler(async (req, res) => {
   if (!req.user) throw new AppError("TOKEN_INVALID");
   // For simplicity, we return the user object from the token.
   // For fresh data, you would call a repository function here.
-  // const user = await authRepo.findUserById(req.user.id);
+  // const user = await findUserById(req.user.id);
   sendSuccessResponse(res, { user: req.user }, "User profile retrieved.");
 });
 

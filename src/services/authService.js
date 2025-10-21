@@ -5,7 +5,7 @@ import {
   verifyRefreshToken,
   hashToken,
 } from "./jwtService.js";
-import { sendVerificationEmail } from "./email.js";
+import { sendVerificationEmail, sendPasswordResetEmail } from "./email.js";
 import {
   findUserByEmail,
   createUser,
@@ -125,7 +125,7 @@ async function forgotPassword(data) {
   const user = await findUserByEmail(data.email);
   // To prevent user enumeration attacks, always return a generic success message.
   if (user) {
-    // await email.sendPasswordResetEmail(user.email, user.name);
+    await sendPasswordResetEmail(user.email, user.name);
     console.log("Password reset email should be sent here.");
   }
   return {
