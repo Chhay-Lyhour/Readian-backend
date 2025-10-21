@@ -1,6 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
-import bookRoute from "./routes/bookRoute.js";
+import bookRouter from "./routes/bookRoute.js";
 import cors from "cors";
 import helmet from "helmet";
 import authRouter from "./routes/authRoute.js";
@@ -26,7 +26,7 @@ app.use(express.urlencoded({ extended: true }));
 
 //routes
 
-app.use("/api/books", bookRoute);
+app.use("/api/books", bookRouter);
 app.use("/api/auth", authRouter);
 
 app.get("/", (req, res) => {
