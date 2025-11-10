@@ -1,65 +1,49 @@
-import BookModel from "../models/bookModel.js";
+import * as bookService from "../services/bookService.js";
+import { sendSuccessResponse } from "../utils/responseHandler.js";
 
-const getBooks = async (req, res) => {
+export async function getAllBooks(req, res, next) {
   try {
-    const books = await BookModel.find({});
-    res.status(200).json(books);
+    const books = await bookService.getAllBooks();
+    sendSuccessResponse(res, books, "Books retrieved successfully.");
   } catch (error) {
-    if (error instanceof Error) {
-      res.status(500).json({ message: error.message });
-    } else {
-      res.status(500).json({ message: "An unknown error occurred" });
-    }
+    next(error);
   }
-};
+}
 
-const getBook = async (req, res) => {
+export async function getBookById(req, res, next) {
   try {
-    const { id } = req.params;
-    const book = await BookModel.findById(id);
-    res.status(200).json(book);
+    // Pass req.user if it exists (from softAuth middleware), otherwise undefined
+    const tokenUser = req.user || undefined;
+    const book = await bookService.getBookById(req.params.id, tokenUser);
+    sendSuccessResponse(res, book, "Book retrieved successfully.");
   } catch (error) {
-    if (error instanceof Error) {
-      return res.status(500).json({ message: error.message });
-    } else {
-      return res.status(500).json({ message: "An unknown error occurred" });
-    }
+    next(error);
   }
-};
+}
 
-const createBook = async (req, res) => {
+export async function createBook(req, res, next) {
   try {
-    const book = await BookModel.create(req.body);
-    res.status(200).json(book);
+    const book = await bookService.createBook(req.body);
+    sendSuccessResponse(res, book, "Book created successfully.");
   } catch (error) {
-    res.status(500).json({ message: "Internal server error" });
+    next(error);
   }
-};
+}
 
-const updateBook = async (req, res) => {
+export async function updateBook(req, res, next) {
   try {
-    const { id } = req.params;
-    const book = await BookModel.findByIdAndUpdate(id, req.body, { new: true });
-    if (!book) {
-      return res.status(404).json({ message: "Book not found" });
-    }
-    return res.status(200).json(book);
+    const book = await bookService.updateBookById(req.params.id, req.body);
+    sendSuccessResponse(res, book, "Book updated successfully.");
   } catch (error) {
-    return res.status(500).json({ message: "Internal server error" });
+    next(error);
   }
-};
+}
 
-const deleteBook = async (req, res) => {
+export async function deleteBook(req, res, next) {
   try {
-    const { id } = req.params;
-    const book = await BookModel.findByIdAndDelete(id);
-    if (!book) {
-      return res.status(404).json({ message: "Book deleted unsuccessfully" });
-    }
-    return res.status(200).json({ message: "Book deleted successfully" });
+    const result = await bookService.deleteBookById(req.params.id);
+    sendSuccessResponse(res, result, result.message);
   } catch (error) {
-    return res.status(500).json({ message: "Internal server error" });
+    next(error);
   }
-};
-
-export { getBooks, getBook, createBook, updateBook, deleteBook };
+}

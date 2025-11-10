@@ -30,7 +30,6 @@ export async function updateUserById(userId, updateData) {
     "-password"
   );
 }
-
 /**
  * Updates a user's role by their ID.
  * @param {string} userId - The ID of the user to update.
@@ -44,7 +43,6 @@ export async function updateUserRole(userId, newRole) {
     { new: true }
   ).select("-password");
 }
-
 /**
  * Deletes a user by their ID.
  * @param {string} userId - The ID of the user to delete.

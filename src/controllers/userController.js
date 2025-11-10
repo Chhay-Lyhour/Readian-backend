@@ -43,6 +43,20 @@ export async function updateUserByAdmin(req, res, next) {
   }
 }
 
+export async function becomeAuthor(req, res, next) {
+  try {
+    // The user's ID is taken securely from the authenticated session (req.user)
+    const updatedUser = await userService.upgradeToAuthor(req.user.id);
+    sendSuccessResponse(
+      res,
+      updatedUser,
+      "Congratulations! You are now a Author."
+    );
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function deleteUser(req, res, next) {
   try {
     const result = await userService.deleteUser(req.params.id);

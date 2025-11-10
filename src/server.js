@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import bookRouter from "./routes/bookRoute.js";
 import authRouter from "./routes/authRoute.js";
 import { userRouter } from "./routes/userRoute.js";
+import subscriptionRouter from "./routes/subscriptionRoute.js";
 import cors from "cors";
 import helmet from "helmet";
 import {
@@ -29,6 +30,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/books", bookRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
+app.use("/api/subscriptions", subscriptionRouter);
 
 app.get("/", (req, res) => {
   res.send("Hello from Node API server updated");

@@ -1,23 +1,51 @@
-import express from "express";
+import { Router } from "express";
+import * as controller from "../controllers/bookController.js";
 import {
-  getBooks,
-  getBook,
-  updateBook,
-  createBook,
-  deleteBook,
-} from "../controllers/bookController.js";
-import { requireAuth, requireRole } from "../middlewares/authMiddleware.js";
+  requireAuth,
+  requireRole,
+  softAuth,
+} from "../middlewares/authMiddleware.js";
+import { validateRequestBody } from "../middlewares/requestValidatorMiddleware.js";
+import {
+  createBookSchema,
+  updateBookSchema,
+} from "../dto/bookValidationSchemas.js";
 
-const router = express.Router();
+const router = Router();
 
-// CRUD for book
-router.get("/", getBooks);
-router.get("/:id", getBook);
+// --- Public Route ---
+// Anyone can get a list of all books.
+router.get("/", controller.getAllBooks);
 
-router.use(requireAuth); // All routes below this will be protected
+// --- "Soft" Authenticated Route ---
+// This route now uses `softAuth`. If a user is logged in, their details are
+// attached to the request. If not, the request proceeds as anonymous.
+// The service layer will handle the subscription check.
+router.get("/:id", softAuth, controller.getBookById);
 
-router.post("/", requireRole(["AUTHOR"]), createBook);
-router.put("/:id", requireRole(["AUTHOR"]), updateBook);
-router.delete("/:id", requireRole(["AUTHOR"]), deleteBook);
+// --- Protected Routes (AUTHOR or ADMIN) ---
+// These actions require a valid token and specific roles.
+router.post(
+  "/",
+  requireAuth,
+  requireRole(["AUTHOR", "ADMIN"]),
+  validateRequestBody(createBookSchema),
+  controller.createBook
+);
+
+router.patch(
+  "/:id",
+  requireAuth,
+  requireRole(["AUTHOR", "ADMIN"]),
+  validateRequestBody(updateBookSchema),
+  controller.updateBook
+);
+
+router.delete(
+  "/:id",
+  requireAuth,
+  requireRole(["AUTHOR", "ADMIN"]),
+  controller.deleteBook
+);
 
 export default router;

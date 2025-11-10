@@ -27,4 +27,29 @@ const requireRole = (requiredRoles) => {
   };
 };
 
-export { requireAuth, requireRole };
+/**
+ * Soft authentication middleware - optionally authenticates the user if a token is present.
+ * Does not throw an error if no token is provided, allowing the route to proceed anonymously.
+ * If a valid token is present, req.user will be set.
+ */
+const softAuth = (req, res, next) => {
+  try {
+    const token = extractTokenFromHeader(req.headers.authorization);
+    if (token) {
+      const decoded = verifyAccessToken(token);
+      req.user = {
+        id: decoded.userId,
+        email: decoded.email,
+        role: decoded.role,
+      };
+    }
+    // Continue even if no token is present
+    next();
+  } catch (error) {
+    // If token is invalid, just continue without setting req.user
+    // This allows the route to proceed as an anonymous request
+    next();
+  }
+};
+
+export { requireAuth, requireRole, softAuth };

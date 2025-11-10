@@ -18,6 +18,8 @@ const ERROR_MAP = {
     message: "You do not have permission.",
   },
   USER_NOT_FOUND: { statusCode: 404, message: "User not found." },
+  BOOK_NOT_FOUND: { statusCode: 404, message: "Book not found." },
+  NOT_FOUND: { statusCode: 404, message: "Resource not found." },
   EMAIL_ALREADY_EXISTS: {
     statusCode: 409,
     message: "An account with this email already exists.",
@@ -34,12 +36,15 @@ const ERROR_MAP = {
     statusCode: 400,
     message: "The verification code is invalid or expired.",
   },
+  ROLE_CHANGE_NOT_ALLOWED: {
+    statusCode: 409,
+    message: "Role change is not allowed.",
+  },
   INTERNAL_SERVER_ERROR: {
     statusCode: 500,
     message: "An unexpected error occurred.",
   },
   EMAIL_SERVICE_ERROR: { statusCode: 500, message: "Failed to send email." },
-  NOT_FOUND: { statusCode: 404, message: "Resource not found." },
 };
 
 class AppError extends Error {

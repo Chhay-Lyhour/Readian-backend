@@ -22,6 +22,29 @@ export async function getUserById(userId) {
 }
 
 /**
+ * Upgrades a user's role to AUTHOR.
+ * @param {string} userId - The ID of the user requesting the upgrade.
+ */
+export async function upgradeToAuthor(userId) {
+  const user = await userRepo.findUserById(userId);
+  if (!user) {
+    throw new AppError("USER_NOT_FOUND");
+  }
+
+  // Business Rule: Only allow READER or BUYER to become AUTHOR.
+  // Handle legacy roles like SELLER by allowing them to become AUTHOR
+  if (user.role === "AUTHOR" || user.role === "ADMIN") {
+    throw new AppError(
+      "ROLE_CHANGE_NOT_ALLOWED",
+      `User is already a ${user.role}.`
+    );
+  }
+
+  const updatedUser = await userRepo.updateUserRole(userId, "AUTHOR");
+  return updatedUser;
+}
+
+/**
  * Updates the profile of the currently logged-in user.
  * @param {string} currentUserId - The ID of the user making the request.
  * @param {object} profileData - The data to update (e.g., name).
