@@ -35,3 +35,17 @@ export const updateBookSchema = z.object({
   publishedDate: z.coerce.date().optional(),
   description: z.string().optional(),
 });
+
+export const paginationQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
+});
+
+export const searchBookSchema = z
+  .object({
+    title: z.string().optional(),
+    author: z.string().optional(),
+    genre: z.string().optional(),
+    tags: z.string().optional(),
+  })
+  .merge(paginationQuerySchema);

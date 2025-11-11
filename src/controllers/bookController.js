@@ -3,8 +3,9 @@ import { sendSuccessResponse } from "../utils/responseHandler.js";
 
 export async function getAllBooks(req, res, next) {
   try {
-    const books = await bookService.getAllBooks();
-    sendSuccessResponse(res, books, "Books retrieved successfully.");
+    const { page, limit } = req.query;
+    const result = await bookService.getAllBooks({ page, limit });
+    sendSuccessResponse(res, result, "Books retrieved successfully.");
   } catch (error) {
     next(error);
   }
@@ -56,6 +57,21 @@ export async function publishBook(req, res, next) {
   try {
     const book = await bookService.publishBook(req.params.id, req.user.id);
     sendSuccessResponse(res, book, "Book published successfully.");
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function searchBooks(req, res, next) {
+  try {
+    const { page, limit, ...searchCriteria } = req.query;
+    const userPlan = req.user ? req.user.plan : "free";
+    const result = await bookService.searchAndFilterBooks(
+      searchCriteria,
+      userPlan,
+      { page, limit }
+    );
+    sendSuccessResponse(res, result, "Books retrieved successfully.");
   } catch (error) {
     next(error);
   }

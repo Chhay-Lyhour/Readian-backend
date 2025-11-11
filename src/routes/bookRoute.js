@@ -5,17 +5,34 @@ import {
   requireRole,
   softAuth,
 } from "../middlewares/authMiddleware.js";
-import { validateRequestBody } from "../middlewares/requestValidatorMiddleware.js";
+import {
+  validateRequestBody,
+  validateRequestQuery,
+} from "../middlewares/requestValidatorMiddleware.js";
 import {
   createBookSchema,
   updateBookSchema,
+  searchBookSchema,
+  paginationQuerySchema,
 } from "../dto/bookValidationSchemas.js";
 
 const router = Router();
 
 // --- Public Route ---
 // Anyone can get a list of all books.
-router.get("/", controller.getAllBooks);
+router.get(
+  "/",
+  validateRequestQuery(paginationQuerySchema),
+  controller.getAllBooks
+);
+
+// --- Search Route ---
+router.get(
+  "/search",
+  softAuth,
+  validateRequestQuery(searchBookSchema),
+  controller.searchBooks
+);
 
 // --- "Soft" Authenticated Route ---
 // This route now uses `softAuth`. If a user is logged in, their details are
