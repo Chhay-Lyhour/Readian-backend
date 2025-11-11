@@ -18,6 +18,13 @@ userRouter.patch(
 // A logged-in user (who is a BUYER) can upgrade their role to AUTHOR
 userRouter.post("/me/become-author", controller.becomeAuthor);
 
+userRouter.get(
+  "/me/books",
+  requireAuth,
+  requireRole(["AUTHOR", "ADMIN"]),
+  controller.getMyBooks
+);
+
 // --- Admin-Only Routes ---
 // The routes below are only accessible to users with the 'ADMIN' role
 userRouter.use(requireRole(["ADMIN"]));

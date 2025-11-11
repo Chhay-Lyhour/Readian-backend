@@ -1,4 +1,5 @@
 import * as userService from "../services/userService.js";
+import * as bookService from "../services/bookService.js";
 import { sendSuccessResponse } from "../utils/responseHandler.js";
 
 export async function getAllUsers(req, res, next) {
@@ -61,6 +62,15 @@ export async function deleteUser(req, res, next) {
   try {
     const result = await userService.deleteUser(req.params.id);
     sendSuccessResponse(res, result, result.message);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getMyBooks(req, res, next) {
+  try {
+    const books = await bookService.getBooksByAuthor(req.user.id);
+    sendSuccessResponse(res, books, "Your books retrieved successfully.");
   } catch (error) {
     next(error);
   }
