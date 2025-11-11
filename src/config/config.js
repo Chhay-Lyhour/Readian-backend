@@ -14,6 +14,7 @@ const config = {
   frontendUrl: process.env.FRONTEND_URL || "http://localhost:3000",
 
   mongoUri: process.env.MONGO_URI || "",
+  testMongoUri: process.env.TEST_MONGO_URI || "",
 
   jwtAccessSecret: process.env.JWT_ACCESS_SECRET,
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET,
