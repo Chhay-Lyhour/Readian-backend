@@ -34,6 +34,10 @@ const bookSchema = new Schema(
     isPremium: Boolean,
     publishedDate: Date,
     description: String,
+    viewCount: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,

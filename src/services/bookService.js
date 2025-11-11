@@ -19,14 +19,28 @@ export async function getAllBooks() {
 }
 
 /**
+ * Retrieves all books by a specific author.
+ * @param {string} authorId - The ID of the author.
+ */
+export async function getBooksByAuthor(authorId) {
+  return BookModel.find({ author: authorId });
+}
+
+/**
  * Retrieves a single book by its ID.
  * Enforces subscription check for premium books.
  * @param {string} bookId - The ID of the book.
  * @param {object} [tokenUser] - The authenticated user object from the JWT (optional).
  */
 const getBookById = async (bookId, tokenUser) => {
-  // Step 1: Get the book from the database to see its details.
-  const book = await Book.findById(bookId);
+  // Step 1: Atomically find the book and increment its view count.
+  // We use { new: true } to get the document *after* the update has been applied.
+  const book = await BookModel.findByIdAndUpdate(
+    bookId,
+    { $inc: { viewCount: 1 } },
+    { new: true }
+  );
+
   if (!book) {
     throw new AppError("BOOK_NOT_FOUND");
   }
