@@ -9,6 +9,7 @@ import {
   validateRequestBody,
   validateRequestQuery,
 } from "../middlewares/requestValidatorMiddleware.js";
+import { uploadSingleImage } from "../middlewares/uploadMiddleware.js";
 import {
   createBookSchema,
   updateBookSchema,
@@ -46,6 +47,7 @@ router.post(
   "/",
   requireAuth,
   requireRole(["AUTHOR", "ADMIN"]),
+  uploadSingleImage("image"),
   validateRequestBody(createBookSchema),
   controller.createBook
 );
@@ -54,6 +56,7 @@ router.patch(
   "/:id",
   requireAuth,
   requireRole(["AUTHOR", "ADMIN"]),
+  uploadSingleImage("image"),
   validateRequestBody(updateBookSchema),
   controller.updateBook
 );

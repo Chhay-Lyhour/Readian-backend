@@ -1,12 +1,18 @@
 import BookModel from "../models/bookModel.js";
 import { User } from "../models/userModel.js";
 import { AppError } from "../utils/errorHandler.js";
+import { uploadFromBuffer } from "./uploadService.js";
 
 /**
  * Creates a new book.
  * @param {object} bookData - The data for the new book.
  */
-export async function createBook(bookData, authorId) {
+export async function createBook(bookData, authorId, file) {
+  if (file) {
+    const imageUrl = await uploadFromBuffer(file.buffer, "book_covers");
+    bookData.image = imageUrl;
+  }
+
   const book = new BookModel({ ...bookData, author: authorId });
   return book.save();
 }
@@ -153,12 +159,17 @@ export async function searchAndFilterBooks(
  * @param {string} bookId - The ID of the book to update.
  * @param {object} updateData - The data to update.
  */
-export async function updateBookById(bookId, updateData, authorId) {
+export async function updateBookById(bookId, updateData, authorId, file) {
   const book = await BookModel.findById(bookId);
   if (!book) throw new AppError("BOOK_NOT_FOUND");
 
   if (book.author.toString() !== authorId) {
     throw new AppError("INSUFFICIENT_PERMISSIONS");
+  }
+
+  if (file) {
+    const imageUrl = await uploadFromBuffer(file.buffer, "book_covers");
+    updateData.image = imageUrl;
   }
 
   const updatedBook = await BookModel.findByIdAndUpdate(bookId, updateData, {

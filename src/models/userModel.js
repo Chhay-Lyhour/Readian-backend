@@ -33,6 +33,10 @@ const userSchema = new Schema(
       type: Date, // Stores the exact date and time the subscription ends
       default: null, // Default to null when no active subscription exists
     },
+    avatar: {
+      type: String,
+      required: false,
+    },
   },
   { timestamps: true } // Automatically manages createdAt and updatedAt fields
 );

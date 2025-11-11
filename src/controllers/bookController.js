@@ -24,7 +24,7 @@ export async function getBookById(req, res, next) {
 
 export async function createBook(req, res, next) {
   try {
-    const book = await bookService.createBook(req.body, req.user.id);
+    const book = await bookService.createBook(req.body, req.user.id, req.file);
     sendSuccessResponse(res, book, "Book created successfully.");
   } catch (error) {
     next(error);
@@ -36,7 +36,8 @@ export async function updateBook(req, res, next) {
     const book = await bookService.updateBookById(
       req.params.id,
       req.body,
-      req.user.id
+      req.user.id,
+      req.file
     );
     sendSuccessResponse(res, book, "Book updated successfully.");
   } catch (error) {

@@ -1,5 +1,27 @@
 import * as userRepo from "../repositories/userRepositories.js";
 import { AppError } from "../utils/errorHandler.js";
+import { uploadFromBuffer } from "./uploadService.js";
+
+/**
+ * Updates the profile image for a user.
+ * @param {string} userId - The ID of the user.
+ * @param {object} file - The file object from multer.
+ */
+export async function updateUserProfileImage(userId, file) {
+  // Upload the new avatar to Cloudinary
+  const imageUrl = await uploadFromBuffer(file.buffer, "profile_images");
+
+  // Update the user's avatar URL in the database
+  const updatedUser = await userRepo.updateUserById(userId, {
+    avatar: imageUrl,
+  });
+
+  if (!updatedUser) {
+    throw new AppError("USER_NOT_FOUND", "Could not update profile image.");
+  }
+
+  return updatedUser;
+}
 
 /**
  * Retrieves all users. (Admin only)

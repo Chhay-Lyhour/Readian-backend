@@ -13,6 +13,7 @@ import {
 } from "./middlewares/errorHandlingMiddleware.js";
 import { config } from "./config/config.js";
 import { connectDB } from "./config/db.js";
+import { configureCloudinary } from "./config/cloudinary.js";
 
 dotenv.config();
 const app = express();
@@ -20,6 +21,9 @@ const port = config.port;
 
 // Connect to MongoDB
 connectDB();
+
+// Configure Cloudinary
+configureCloudinary();
 
 // Global Middlewares
 app.use(helmet());
