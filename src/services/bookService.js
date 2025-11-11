@@ -19,9 +19,10 @@ export async function createBook(bookData, authorId) {
  */
 export async function getAllBooks({ page, limit }) {
   const skip = (page - 1) * limit;
+  const query = { status: "published" };
   const [books, totalItems] = await Promise.all([
-    BookModel.find({}).skip(skip).limit(limit),
-    BookModel.countDocuments({}),
+    BookModel.find(query).skip(skip).limit(limit),
+    BookModel.countDocuments(query),
   ]);
 
   return {
@@ -47,53 +48,55 @@ export async function getBooksByAuthor(authorId) {
  * @param {object} [tokenUser] - The authenticated user object from the JWT (optional).
  */
 export const getBookById = async (bookId, tokenUser) => {
-  // Step 1: Atomically find the book and increment its view count.
-  // We use { new: true } to get the document *after* the update has been applied.
-  const book = await BookModel.findByIdAndUpdate(
-    bookId,
-    { $inc: { viewCount: 1 } },
-    { new: true }
-  );
+  // Step 1: Find the book first, without incrementing the view count yet.
+  const book = await BookModel.findById(bookId);
 
+  // Step 2: If no book is found, exit immediately.
   if (!book) {
     throw new AppError("BOOK_NOT_FOUND");
   }
 
-  // --- THIS IS THE SECURITY CHECK ---
-  // Step 2: Check if the book is premium. If it's not, we don't care
-  // about subscriptions and will return the book at the end.
+  // --- DRAFT VISIBILITY CHECK ---
+  // Step 3: If the book is a draft, only its author or an admin can see it.
+  if (book.status === "draft") {
+    const isAuthor = tokenUser && book.author.toString() === tokenUser.id;
+    const isAdmin = tokenUser && tokenUser.role === "ADMIN";
+
+    if (!isAuthor && !isAdmin) {
+      // Treat it as if it doesn't exist for unauthorized users.
+      throw new AppError("BOOK_NOT_FOUND");
+    }
+  }
+
+  // --- INCREMENT VIEW COUNT ---
+  // Step 4: Now that we know the user can view the book, increment the view count.
+  // We do this separately to avoid incrementing views for unauthorized access attempts.
+  book.viewCount += 1;
+  await book.save();
+
+  // --- PREMIUM CONTENT CHECK ---
+  // Step 5: Check if the book is premium.
   if (book.isPremium) {
-    // Step 3: The book is premium. First, check if a user is even logged in.
-    // 'tokenUser' comes from your 'softAuth' middleware.
-    // If 'tokenUser' is 'undefined', they are an anonymous user.
     if (!tokenUser || !tokenUser.id) {
       throw new AppError("SUBSCRIPTION_REQUIRED");
     }
 
-    // Step 4: A user is logged in. Now, get their *latest* data from the database.
-    // We can't trust the JWT token for this, as their subscription might have expired.
     const dbUser = await User.findById(tokenUser.id);
     if (!dbUser) {
       throw new AppError("USER_NOT_FOUND");
     }
 
-    // Step 5: This is the "Key Check". We see if their subscription is 'active'
-    // AND if the expiration date is still in the future.
     const isSubscriptionActive =
       dbUser.subscriptionStatus === "active" &&
       dbUser.subscriptionExpiresAt &&
       new Date() < new Date(dbUser.subscriptionExpiresAt);
 
-    // Step 6: THE GATE.
-    // If the 'isSubscriptionActive' check fails, block them.
     if (!isSubscriptionActive) {
       throw new AppError("SUBSCRIPTION_REQUIRED");
     }
   }
 
-  // Step 7: If the book is not premium (Step 2 was false),
-  // or if the user passed the subscription check (Step 6 was false),
-  // we return the book.
+  // Step 6: Return the book.
   return book;
 };
 
@@ -103,7 +106,7 @@ export async function searchAndFilterBooks(
   { page, limit }
 ) {
   const { title, author, genre, tags } = searchCriteria;
-  const query = {};
+  const query = { status: "published" };
 
   if (title) {
     query.title = { $regex: title, $options: "i" };
