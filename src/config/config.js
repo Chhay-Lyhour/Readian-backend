@@ -22,6 +22,8 @@ const config = {
 
   bcryptSaltRounds: process.env.BCRYPT_SALT_ROUNDS || "12",
 
+  emailVerificationExpiry: process.env.EMAIL_VERIFICATION_EXPIRY || "900",
+
   gmailHost: process.env.GMAIL_HOST,
   gmailUser: process.env.GMAIL_USER,
   gmailPass: process.env.GMAIL_PASS,

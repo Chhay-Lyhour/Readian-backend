@@ -57,7 +57,9 @@ const createEmailVerification = async (email, code, type) => {
     email,
     code,
     type,
-    expires_at: new Date(Date.now() + 15 * 60 * 1000), // 15 mins
+    expires_at: new Date(
+      Date.now() + parseInt(config.emailVerificationExpiry) * 1000
+    ), // 15 mins
   });
   return verification.save();
 };

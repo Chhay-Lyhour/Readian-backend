@@ -39,8 +39,8 @@ const getCurrentUser = asyncHandler(async (req, res) => {
   if (!req.user) throw new AppError("TOKEN_INVALID");
   // For simplicity, we return the user object from the token.
   // For fresh data, you would call a repository function here.
-  // const user = await findUserById(req.user.id);
-  sendSuccessResponse(res, { user: req.user }, "User profile retrieved.");
+  const user = await findUserById(req.user.id);
+  sendSuccessResponse(res, { user: user }, "User profile retrieved.");
 });
 
 const resendVerificationCodeController = asyncHandler(async (req, res) => {
