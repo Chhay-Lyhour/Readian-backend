@@ -23,7 +23,7 @@ export async function getBookById(req, res, next) {
 
 export async function createBook(req, res, next) {
   try {
-    const book = await bookService.createBook(req.body);
+    const book = await bookService.createBook(req.body, req.user.id);
     sendSuccessResponse(res, book, "Book created successfully.");
   } catch (error) {
     next(error);
@@ -32,7 +32,11 @@ export async function createBook(req, res, next) {
 
 export async function updateBook(req, res, next) {
   try {
-    const book = await bookService.updateBookById(req.params.id, req.body);
+    const book = await bookService.updateBookById(
+      req.params.id,
+      req.body,
+      req.user.id
+    );
     sendSuccessResponse(res, book, "Book updated successfully.");
   } catch (error) {
     next(error);
@@ -41,8 +45,17 @@ export async function updateBook(req, res, next) {
 
 export async function deleteBook(req, res, next) {
   try {
-    const result = await bookService.deleteBookById(req.params.id);
+    const result = await bookService.deleteBookById(req.params.id, req.user.id);
     sendSuccessResponse(res, result, result.message);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function publishBook(req, res, next) {
+  try {
+    const book = await bookService.publishBook(req.params.id, req.user.id);
+    sendSuccessResponse(res, book, "Book published successfully.");
   } catch (error) {
     next(error);
   }

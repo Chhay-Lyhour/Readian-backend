@@ -48,4 +48,11 @@ router.delete(
   controller.deleteBook
 );
 
+router.post(
+  "/:id/publish",
+  requireAuth,
+  requireRole(["AUTHOR", "ADMIN"]),
+  controller.publishBook
+);
+
 export default router;

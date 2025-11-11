@@ -6,8 +6,8 @@ import { AppError } from "../utils/errorHandler.js";
  * Creates a new book.
  * @param {object} bookData - The data for the new book.
  */
-export async function createBook(bookData) {
-  const book = new BookModel(bookData);
+export async function createBook(bookData, authorId) {
+  const book = new BookModel({ ...bookData, author: authorId });
   return book.save();
 }
 
@@ -74,20 +74,56 @@ const getBookById = async (bookId, tokenUser) => {
  * @param {string} bookId - The ID of the book to update.
  * @param {object} updateData - The data to update.
  */
-export async function updateBookById(bookId, updateData) {
-  const book = await BookModel.findByIdAndUpdate(bookId, updateData, {
+export async function updateBookById(bookId, updateData, authorId) {
+  const book = await BookModel.findById(bookId);
+  if (!book) throw new AppError("BOOK_NOT_FOUND");
+
+  if (book.author.toString() !== authorId) {
+    throw new AppError("INSUFFICIENT_PERMISSIONS");
+  }
+
+  const updatedBook = await BookModel.findByIdAndUpdate(bookId, updateData, {
     new: true,
   });
-  if (!book) throw new AppError("BOOK_NOT_FOUND");
-  return book;
+  return updatedBook;
 }
 
 /**
  * Deletes a book by its ID.
  * @param {string} bookId - The ID of the book to delete.
  */
-export async function deleteBookById(bookId) {
-  const book = await BookModel.findByIdAndDelete(bookId);
+export async function deleteBookById(bookId, authorId) {
+  const book = await BookModel.findById(bookId);
   if (!book) throw new AppError("BOOK_NOT_FOUND");
+
+  if (book.author.toString() !== authorId) {
+    throw new AppError("INSUFFICIENT_PERMISSIONS");
+  }
+
+  await BookModel.findByIdAndDelete(bookId);
   return { message: "Book deleted successfully." };
+}
+
+/**
+ * Publishes a book.
+ * @param {string} bookId - The ID of the book to publish.
+ * @param {string} authorId - The ID of the author attempting to publish.
+ */
+export async function publishBook(bookId, authorId) {
+  const book = await BookModel.findById(bookId);
+  if (!book) throw new AppError("BOOK_NOT_FOUND");
+
+  if (book.author.toString() !== authorId) {
+    throw new AppError("INSUFFICIENT_PERMISSIONS");
+  }
+
+  if (book.status === "published") {
+    throw new AppError("BOOK_ALREADY_PUBLISHED", "This book is already published.");
+  }
+
+  book.status = "published";
+  book.publishedDate = new Date();
+  await book.save();
+
+  return book;
 }
