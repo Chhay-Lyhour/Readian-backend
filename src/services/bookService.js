@@ -111,8 +111,9 @@ export async function searchAndFilterBooks(
   userPlan,
   { page, limit }
 ) {
-  const { title, author, genre, tags } = searchCriteria;
+  const { title, author, genre, tags, sortByLikes } = searchCriteria;
   const query = { status: "published" };
+  const sortOption = {};
 
   if (title) {
     query.title = { $regex: title, $options: "i" };
@@ -132,17 +133,20 @@ export async function searchAndFilterBooks(
     if (tags) {
       query.tags = { $regex: tags, $options: "i" };
     }
-  } else if (genre || tags) {
+    if (sortByLikes) {
+      sortOption.likes = sortByLikes;
+    }
+  } else if (genre || tags || sortByLikes) {
     // If a non-premium user tries to filter, throw an error
     throw new AppError(
       "PREMIUM_FEATURE_ONLY",
-      "Filtering by genre or tags is a premium feature."
+      "Filtering by genre, tags, or sorting by likes is a premium feature."
     );
   }
 
   const skip = (page - 1) * limit;
   const [books, totalItems] = await Promise.all([
-    BookModel.find(query).skip(skip).limit(limit),
+    BookModel.find(query).sort(sortOption).skip(skip).limit(limit),
     BookModel.countDocuments(query),
   ]);
 

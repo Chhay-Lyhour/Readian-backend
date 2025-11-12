@@ -21,7 +21,6 @@ const bookSchema = new Schema(
     tags: String,
     genre: String,
     rating: Number,
-    review: String,
     image: {
       type: String,
       required: false,

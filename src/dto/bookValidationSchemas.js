@@ -47,5 +47,6 @@ export const searchBookSchema = z
     author: z.string().optional(),
     genre: z.string().optional(),
     tags: z.string().optional(),
+    sortByLikes: z.enum(["asc", "desc"]).optional(),
   })
   .merge(paginationQuerySchema);
