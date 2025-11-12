@@ -18,9 +18,6 @@ import { configureCloudinary } from "./config/cloudinary.js";
 dotenv.config();
 const app = express();
 
-// Connect to MongoDB
-connectDB();
-
 // Configure Cloudinary
 configureCloudinary();
 
