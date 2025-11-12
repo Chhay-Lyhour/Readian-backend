@@ -5,6 +5,7 @@ import authRouter from "./routes/authRoute.js";
 import { userRouter } from "./routes/userRoute.js";
 import subscriptionRouter from "./routes/subscriptionRoute.js";
 import adminRouter from "./routes/adminRoute.js";
+import analyticsRouter from "./routes/analyticsRoute.js";
 import cors from "cors";
 import helmet from "helmet";
 import {
@@ -12,7 +13,6 @@ import {
   notFoundHandler,
 } from "./middlewares/errorHandlingMiddleware.js";
 import { config } from "./config/config.js";
-import { connectDB } from "./config/db.js";
 import { configureCloudinary } from "./config/cloudinary.js";
 
 dotenv.config();
@@ -33,6 +33,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/subscriptions", subscriptionRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/analytics", analyticsRouter);
 
 app.get("/", (req, res) => {
   res.send("Hello from Node API server updated");

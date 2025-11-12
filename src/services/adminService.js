@@ -1,5 +1,6 @@
 import { User } from "../models/userModel.js";
 import BookModel from "../models/bookModel.js";
+import { getPublicAnalytics } from "./analyticsService.js";
 
 /**
  * Gathers various analytics for the admin dashboard.
@@ -18,8 +19,7 @@ export async function getDashboardAnalytics() {
     premiumBooks,
     totalViews,
     newUsersByDay,
-    topBooks,
-    topAuthors,
+    publicAnalytics,
     userSubscriptionBreakdown,
     totalLikes,
   ] = await Promise.all([
@@ -42,41 +42,7 @@ export async function getDashboardAnalytics() {
       },
       { $sort: { _id: 1 } },
     ]),
-    // Aggregation for top 5 most viewed books
-    BookModel.find({ status: "published" })
-      .sort({ viewCount: -1 })
-      .limit(5)
-      .select("title viewCount"),
-    // Aggregation for top 5 authors
-    BookModel.aggregate([
-      { $match: { status: "published" } },
-      {
-        $group: {
-          _id: "$author",
-          totalViews: { $sum: "$viewCount" },
-          bookCount: { $sum: 1 },
-        },
-      },
-      { $sort: { totalViews: -1 } },
-      { $limit: 5 },
-      {
-        $lookup: {
-          from: "users",
-          localField: "_id",
-          foreignField: "_id",
-          as: "authorDetails",
-        },
-      },
-      {
-        $project: {
-          _id: 0,
-          authorId: "$_id",
-          authorName: { $arrayElemAt: ["$authorDetails.name", 0] },
-          totalViews: 1,
-          bookCount: 1,
-        },
-      },
-    ]),
+    getPublicAnalytics(),
     // Aggregation for user subscription breakdown
     User.aggregate([
       {
@@ -124,8 +90,8 @@ export async function getDashboardAnalytics() {
     },
     detailed: {
       newUsersLast30Days: newUsersByDay,
-      topBooks: topBooks,
-      topAuthors: topAuthors,
+      topBooks: publicAnalytics.topBooks,
+      topAuthors: publicAnalytics.topAuthors,
     },
   };
 
