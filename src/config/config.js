@@ -8,6 +8,11 @@ if (!process.env.JWT_ACCESS_SECRET || !process.env.JWT_REFRESH_SECRET) {
   process.exit(1);
 }
 
+if (!process.env.MONGO_URI || !process.env.TEST_MONGO_URI) {
+  console.error("FATAL ERROR: MongoDB URI is not defined.");
+  process.exit(1);
+}
+
 const config = {
   port: process.env.PORT || 5001,
   nodeEnv: process.env.NODE_ENV || "development",

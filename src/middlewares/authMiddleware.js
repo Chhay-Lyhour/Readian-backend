@@ -4,14 +4,19 @@ import {
   extractTokenFromHeader,
 } from "../services/jwtService.js";
 import { UserRole } from "../models/userModel.js";
+import * as userRepo from "../repositories/userRepositories.js";
 
-const requireAuth = (req, res, next) => {
+const requireAuth = async (req, res, next) => {
   try {
     const token = extractTokenFromHeader(req.headers.authorization);
     if (!token) throw new AppError("TOKEN_INVALID");
 
     const decoded = verifyAccessToken(token);
-    req.user = { id: decoded.userId, email: decoded.email, role: decoded.role };
+    const user = await userRepo.findUserById(decoded.id);
+    if (!user) {
+      return next(new AppError("USER_NOT_FOUND", "User not found."));
+    }
+    req.user = user;
     next();
   } catch (error) {
     next(error);
@@ -32,16 +37,15 @@ const requireRole = (requiredRoles) => {
  * Does not throw an error if no token is provided, allowing the route to proceed anonymously.
  * If a valid token is present, req.user will be set.
  */
-const softAuth = (req, res, next) => {
+const softAuth = async (req, res, next) => {
   try {
     const token = extractTokenFromHeader(req.headers.authorization);
     if (token) {
       const decoded = verifyAccessToken(token);
-      req.user = {
-        id: decoded.userId,
-        email: decoded.email,
-        role: decoded.role,
-      };
+      const user = await userRepo.findUserById(decoded.id);
+      if (user) {
+        req.user = user;
+      }
     }
     // Continue even if no token is present
     next();

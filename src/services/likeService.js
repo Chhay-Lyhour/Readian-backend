@@ -1,0 +1,84 @@
+import BookModel from "../models/bookModel.js";
+import { User as UserModel } from "../models/userModel.js";
+import { AppError } from "../utils/errorHandler.js";
+import mongoose from "mongoose";
+
+/**
+ * Likes a book for a user.
+ * @param {string} userId - The ID of the user.
+ * @param {string} bookId - The ID of the book.
+ */
+export async function likeBook(userId, bookId) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const book = await BookModel.findById(bookId).session(session);
+    if (!book) {
+      throw new AppError("BOOK_NOT_FOUND", "Book not found.");
+    }
+
+    const user = await UserModel.findById(userId).session(session);
+    if (!user) {
+      throw new AppError("USER_NOT_FOUND", "User not found.");
+    }
+
+    if (book.likedBy.includes(userId)) {
+      throw new AppError("ALREADY_LIKED", "You have already liked this book.");
+    }
+
+    book.likes += 1;
+    book.likedBy.push(userId);
+    user.likedBooks.push(bookId);
+
+    await book.save({ session });
+    await user.save({ session });
+
+    await session.commitTransaction();
+    return { message: "Book liked successfully." };
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
+}
+
+/**
+ * Unlikes a book for a user.
+ * @param {string} userId - The ID of the user.
+ * @param {string} bookId - The ID of the book.
+ */
+export async function unlikeBook(userId, bookId) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const book = await BookModel.findById(bookId).session(session);
+    if (!book) {
+      throw new AppError("BOOK_NOT_FOUND", "Book not found.");
+    }
+
+    const user = await UserModel.findById(userId).session(session);
+    if (!user) {
+      throw new AppError("USER_NOT_FOUND", "User not found.");
+    }
+
+    if (!book.likedBy.includes(userId)) {
+      throw new AppError("NOT_LIKED", "You have not liked this book.");
+    }
+
+    book.likes -= 1;
+    book.likedBy.pull(userId);
+    user.likedBooks.pull(bookId);
+
+    await book.save({ session });
+    await user.save({ session });
+
+    await session.commitTransaction();
+    return { message: "Book unliked successfully." };
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
+}

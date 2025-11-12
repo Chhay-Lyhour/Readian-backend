@@ -1,6 +1,8 @@
 import * as userRepo from "../repositories/userRepositories.js";
 import { AppError } from "../utils/errorHandler.js";
 import { uploadFromBuffer } from "./uploadService.js";
+import BookModel from "../models/bookModel.js";
+import mongoose from "mongoose";
 
 /**
  * Updates the profile image for a user.
@@ -108,4 +110,45 @@ export async function deleteUser(userIdToDelete) {
     );
   }
   return { message: "User deleted successfully." };
+}
+
+/**
+ * Gathers statistics for an author's dashboard.
+ * @param {string} authorId - The ID of the author.
+ */
+export async function getAuthorStats(authorId) {
+  const authorObjectId = new mongoose.Types.ObjectId(authorId);
+  const stats = await BookModel.aggregate([
+    { $match: { author: authorObjectId } },
+    {
+      $group: {
+        _id: null,
+        totalBooks: { $sum: 1 },
+        totalViews: { $sum: "$viewCount" },
+        totalLikes: { $sum: "$likes" },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        totalBooks: 1,
+        totalViews: 1,
+        totalLikes: 1,
+      },
+    },
+  ]);
+
+  return stats[0] || { totalBooks: 0, totalViews: 0, totalLikes: 0 };
+}
+
+/**
+ * Retrieves the liked books for a user.
+ * @param {string} userId - The ID of the user.
+ */
+export async function getLikedBooks(userId) {
+  const user = await userRepo.findUserById(userId).populate("likedBooks");
+  if (!user) {
+    throw new AppError("USER_NOT_FOUND", "No user found with that ID.");
+  }
+  return user.likedBooks;
 }

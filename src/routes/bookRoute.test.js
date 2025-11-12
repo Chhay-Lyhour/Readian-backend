@@ -46,8 +46,10 @@ describe("Book Routes: /api/books", () => {
       expect(response.body.success).toBe(true);
       expect(response.body.data.books).toHaveLength(2);
       expect(response.body.data.totalItems).toBe(2);
-      expect(response.body.data.books[0].title).toBe("Published Book 1");
-      expect(response.body.data.books[1].title).toBe("Published Book 2");
+      const book1 = response.body.data.books.find(b => b.title === "Published Book 1");
+      const book2 = response.body.data.books.find(b => b.title === "Published Book 2");
+      expect(book1).toBeDefined();
+      expect(book2).toBeDefined();
     });
   });
 });

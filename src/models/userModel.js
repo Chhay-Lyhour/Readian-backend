@@ -37,6 +37,12 @@ const userSchema = new Schema(
       type: String,
       required: false,
     },
+    likedBooks: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Book",
+      },
+    ],
   },
   { timestamps: true } // Automatically manages createdAt and updatedAt fields
 );

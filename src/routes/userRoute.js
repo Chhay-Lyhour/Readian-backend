@@ -34,6 +34,15 @@ userRouter.get(
   controller.getMyBooks
 );
 
+userRouter.get(
+  "/me/author-stats",
+  requireAuth,
+  requireRole(["AUTHOR", "ADMIN"]),
+  controller.getAuthorStats
+);
+
+userRouter.get("/me/liked-books", requireAuth, controller.getLikedBooks);
+
 // --- Admin-Only Routes ---
 // The routes below are only accessible to users with the 'ADMIN' role
 userRouter.use(requireRole(["ADMIN"]));

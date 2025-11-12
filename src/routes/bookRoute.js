@@ -16,6 +16,7 @@ import {
   searchBookSchema,
   paginationQuerySchema,
 } from "../dto/bookValidationSchemas.js";
+import * as likeController from "../controllers/likeController.js";
 
 const router = Router();
 
@@ -74,5 +75,9 @@ router.post(
   requireRole(["AUTHOR", "ADMIN"]),
   controller.publishBook
 );
+
+// --- Like/Unlike Routes ---
+router.post("/:id/like", requireAuth, likeController.likeBook);
+router.post("/:id/unlike", requireAuth, likeController.unlikeBook);
 
 export default router;

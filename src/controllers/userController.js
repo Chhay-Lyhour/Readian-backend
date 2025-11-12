@@ -91,3 +91,21 @@ export async function getMyBooks(req, res, next) {
     next(error);
   }
 }
+
+export async function getAuthorStats(req, res, next) {
+  try {
+    const stats = await userService.getAuthorStats(req.user.id);
+    sendSuccessResponse(res, stats, "Author stats retrieved successfully.");
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getLikedBooks(req, res, next) {
+  try {
+    const books = await userService.getLikedBooks(req.user.id);
+    sendSuccessResponse(res, books, "Liked books retrieved successfully.");
+  } catch (error) {
+    next(error);
+  }
+}

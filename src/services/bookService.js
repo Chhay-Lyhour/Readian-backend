@@ -27,7 +27,7 @@ export async function getAllBooks({ page, limit }) {
   const skip = (page - 1) * limit;
   const query = { status: "published" };
   const [books, totalItems] = await Promise.all([
-    BookModel.find(query).skip(skip).limit(limit),
+    BookModel.find(query).sort({ createdAt: 1 }).skip(skip).limit(limit),
     BookModel.countDocuments(query),
   ]);
 

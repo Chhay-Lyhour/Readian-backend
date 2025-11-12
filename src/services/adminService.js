@@ -21,6 +21,7 @@ export async function getDashboardAnalytics() {
     topBooks,
     topAuthors,
     userSubscriptionBreakdown,
+    totalLikes,
   ] = await Promise.all([
     User.countDocuments(),
     User.aggregate([{ $group: { _id: "$role", count: { $sum: 1 } } }]),
@@ -88,6 +89,10 @@ export async function getDashboardAnalytics() {
         },
       },
     ]),
+    // Aggregation for total likes
+    BookModel.aggregate([
+      { $group: { _id: null, total: { $sum: "$likes" } } },
+    ]),
   ]);
 
   // Format the results into a clean object
@@ -115,6 +120,7 @@ export async function getDashboardAnalytics() {
       }, {}),
       premium: premiumBooks,
       totalViews: totalViews[0]?.total || 0,
+      totalLikes: totalLikes[0]?.total || 0,
     },
     detailed: {
       newUsersLast30Days: newUsersByDay,

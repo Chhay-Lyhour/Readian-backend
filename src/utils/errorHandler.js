@@ -49,6 +49,14 @@ const ERROR_MAP = {
     message: "An unexpected error occurred.",
   },
   EMAIL_SERVICE_ERROR: { statusCode: 500, message: "Failed to send email." },
+  ALREADY_LIKED: {
+    statusCode: 400,
+    message: "You have already liked this book.",
+  },
+  NOT_LIKED: {
+    statusCode: 400,
+    message: "You have not liked this book.",
+  },
 };
 
 class AppError extends Error {
