@@ -3,7 +3,15 @@ import { z } from "zod";
 // For: PATCH /api/users/me (a user updating their own profile)
 export const updateProfileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").optional(),
-  // You can add other editable fields here later, like bio, etc.
+  bio: z.string().max(500, "Bio cannot exceed 500 characters").optional(),
+});
+
+// For: POST /api/users/me/change-password
+export const changePasswordSchema = z.object({
+  currentPassword: z.string(),
+  newPassword: z
+    .string()
+    .min(8, "New password must be at least 8 characters"),
 });
 
 // For: PATCH /api/users/:id (an admin updating any user)

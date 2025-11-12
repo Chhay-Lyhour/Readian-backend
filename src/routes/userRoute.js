@@ -43,6 +43,13 @@ userRouter.get(
 
 userRouter.get("/me/liked-books", requireAuth, controller.getLikedBooks);
 
+// A user can change their own password
+userRouter.post(
+  "/me/change-password",
+  validateRequestBody(schemas.changePasswordSchema),
+  controller.changePassword
+);
+
 // --- Admin-Only Routes ---
 // The routes below are only accessible to users with the 'ADMIN' role
 userRouter.use(requireRole(["ADMIN"]));

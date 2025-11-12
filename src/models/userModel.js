@@ -37,6 +37,10 @@ const userSchema = new Schema(
       type: String,
       required: false,
     },
+    bio: {
+      type: String,
+      maxLength: 500, // Optional: Add a max length for the bio
+    },
     likedBooks: [
       {
         type: Schema.Types.ObjectId,

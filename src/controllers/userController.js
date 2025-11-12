@@ -1,7 +1,17 @@
 import * as userService from "../services/userService.js";
 import * as bookService from "../services/bookService.js";
+import * as authService from "../services/authService.js";
 import { sendSuccessResponse } from "../utils/responseHandler.js";
 import { AppError } from "../utils/errorHandler.js";
+
+export async function changePassword(req, res, next) {
+  try {
+    const result = await authService.changePassword(req.user.id, req.body);
+    sendSuccessResponse(res, result, result.message);
+  } catch (error) {
+    next(error);
+  }
+}
 
 export async function updateProfileImage(req, res, next) {
   try {
