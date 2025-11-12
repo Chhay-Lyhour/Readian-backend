@@ -3,10 +3,11 @@ import ChapterModel from "../models/chapterModel.js";
 import { User } from "../models/userModel.js";
 import { AppError } from "../utils/errorHandler.js";
 import { uploadFromBuffer } from "./uploadService.js";
+import { calculateReadingTime } from "../utils/readingTimeCalculator.js";
 import mongoose from "mongoose";
 
 /**
- * Creates a new book and its chapters.
+ * Creates a new book and its chapters, and calculates the reading time.
  * @param {object} bookData - The data for the new book, including chapters.
  * @param {string} authorId - The ID of the author.
  * @param {object} file - The uploaded file for the book cover.
@@ -24,6 +25,10 @@ export async function createBook(bookData, authorId, file) {
 
   try {
     const book = new BookModel({ ...restOfBookData, author: authorId });
+
+    const totalContent = chapters.map((c) => c.content).join(" ");
+    book.readingTime = calculateReadingTime(totalContent);
+
     await book.save({ session });
 
     const chapterDocs = chapters.map((chapter, index) => ({
@@ -210,13 +215,17 @@ export async function searchAndFilterBooks(
 }
 
 /**
- * Updates a book by its ID.
+ * Updates a book by its ID. If chapters are provided, they are replaced.
  * @param {string} bookId - The ID of the book to update.
- * @param {object} updateData - The data to update.
+ * @param {object} updateData - The data to update, may include chapters.
+ * @param {string} authorId - The ID of the author making the update.
+ * @param {object} file - An optional file for the book's cover image.
  */
 export async function updateBookById(bookId, updateData, authorId, file) {
   const book = await BookModel.findById(bookId);
-  if (!book) throw new AppError("BOOK_NOT_FOUND");
+  if (!book) {
+    throw new AppError("BOOK_NOT_FOUND");
+  }
 
   if (book.author.toString() !== authorId) {
     throw new AppError("INSUFFICIENT_PERMISSIONS");
@@ -227,10 +236,54 @@ export async function updateBookById(bookId, updateData, authorId, file) {
     updateData.image = imageUrl;
   }
 
-  const updatedBook = await BookModel.findByIdAndUpdate(bookId, updateData, {
-    new: true,
-  });
-  return updatedBook;
+  const { chapters, ...restOfUpdateData } = updateData;
+
+  // If chapters are part of the update, handle them in a transaction
+  if (chapters && chapters.length > 0) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      // 1. Delete old chapters
+      await ChapterModel.deleteMany({ book: bookId }, { session });
+
+      // 2. Create new chapters
+      const chapterDocs = chapters.map((chapter, index) => ({
+        ...chapter,
+        book: bookId,
+        chapterNumber: index + 1,
+      }));
+      await ChapterModel.insertMany(chapterDocs, { session });
+
+      // 3. Recalculate reading time
+      const totalContent = chapters.map((c) => c.content).join(" ");
+      restOfUpdateData.readingTime = calculateReadingTime(totalContent);
+
+      // 4. Update the book itself
+      const updatedBook = await BookModel.findByIdAndUpdate(
+        bookId,
+        restOfUpdateData,
+        { new: true, session }
+      );
+
+      await session.commitTransaction();
+      return updatedBook;
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  } else {
+    // If no chapters are being updated, just update the book metadata
+    const updatedBook = await BookModel.findByIdAndUpdate(
+      bookId,
+      restOfUpdateData,
+      {
+        new: true,
+      }
+    );
+    return updatedBook;
+  }
 }
 
 /**

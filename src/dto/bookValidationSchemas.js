@@ -36,6 +36,15 @@ export const updateBookSchema = z.object({
   isPublished: z.boolean().optional(),
   isPremium: z.boolean().optional(),
   publishedDate: z.coerce.date().optional(),
+  chapters: z
+    .array(
+      z.object({
+        title: z.string().min(1, "Chapter title is required"),
+        content: z.string().min(1, "Chapter content is required"),
+      })
+    )
+    .min(1, "At least one chapter is required")
+    .optional(),
 });
 
 export const paginationQuerySchema = z.object({
