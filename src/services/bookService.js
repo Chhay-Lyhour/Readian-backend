@@ -1,20 +1,47 @@
 import BookModel from "../models/bookModel.js";
+import ChapterModel from "../models/chapterModel.js";
 import { User } from "../models/userModel.js";
 import { AppError } from "../utils/errorHandler.js";
 import { uploadFromBuffer } from "./uploadService.js";
+import mongoose from "mongoose";
 
 /**
- * Creates a new book.
- * @param {object} bookData - The data for the new book.
+ * Creates a new book and its chapters.
+ * @param {object} bookData - The data for the new book, including chapters.
+ * @param {string} authorId - The ID of the author.
+ * @param {object} file - The uploaded file for the book cover.
  */
 export async function createBook(bookData, authorId, file) {
+  const { chapters, ...restOfBookData } = bookData;
+
   if (file) {
     const imageUrl = await uploadFromBuffer(file.buffer, "book_covers");
-    bookData.image = imageUrl;
+    restOfBookData.image = imageUrl;
   }
 
-  const book = new BookModel({ ...bookData, author: authorId });
-  return book.save();
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const book = new BookModel({ ...restOfBookData, author: authorId });
+    await book.save({ session });
+
+    const chapterDocs = chapters.map((chapter, index) => ({
+      ...chapter,
+      book: book._id,
+      chapterNumber: index + 1,
+    }));
+
+    await ChapterModel.insertMany(chapterDocs, { session });
+
+    await session.commitTransaction();
+    return book;
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
 }
 
 /**
@@ -53,9 +80,13 @@ export async function getBooksByAuthor(authorId) {
  * @param {string} bookId - The ID of the book.
  * @param {object} [tokenUser] - The authenticated user object from the JWT (optional).
  */
-export const getBookById = async (bookId, tokenUser) => {
-  // Step 1: Find the book first, without incrementing the view count yet.
-  const book = await BookModel.findById(bookId);
+export const getBookById = async (
+  bookId,
+  tokenUser,
+  { chapterPage = 1, chapterLimit = 10 }
+) => {
+  // Step 1: Find the book first.
+  const book = await BookModel.findById(bookId).lean();
 
   // Step 2: If no book is found, exit immediately.
   if (!book) {
@@ -69,19 +100,15 @@ export const getBookById = async (bookId, tokenUser) => {
     const isAdmin = tokenUser && tokenUser.role === "ADMIN";
 
     if (!isAuthor && !isAdmin) {
-      // Treat it as if it doesn't exist for unauthorized users.
       throw new AppError("BOOK_NOT_FOUND");
     }
   }
 
   // --- INCREMENT VIEW COUNT ---
-  // Step 4: Now that we know the user can view the book, increment the view count.
-  // We do this separately to avoid incrementing views for unauthorized access attempts.
-  book.viewCount += 1;
-  await book.save();
+  // We can do this in the background as it doesn't need to block the response.
+  BookModel.findByIdAndUpdate(bookId, { $inc: { viewCount: 1 } }).exec();
 
   // --- PREMIUM CONTENT CHECK ---
-  // Step 5: Check if the book is premium.
   if (book.isPremium) {
     if (!tokenUser || !tokenUser.id) {
       throw new AppError("SUBSCRIPTION_REQUIRED");
@@ -102,8 +129,32 @@ export const getBookById = async (bookId, tokenUser) => {
     }
   }
 
-  // Step 6: Return the book.
-  return book;
+  // --- FETCH CHAPTERS AND TABLE OF CONTENTS ---
+  const skip = (chapterPage - 1) * chapterLimit;
+
+  const [chapters, totalChapters, tableOfContents] = await Promise.all([
+    ChapterModel.find({ book: bookId })
+      .sort({ chapterNumber: 1 })
+      .skip(skip)
+      .limit(chapterLimit)
+      .lean(),
+    ChapterModel.countDocuments({ book: bookId }),
+    ChapterModel.find({ book: bookId })
+      .sort({ chapterNumber: 1 })
+      .select("title")
+      .lean(),
+  ]);
+
+  return {
+    ...book,
+    chapters,
+    tableOfContents: tableOfContents.map((c) => c.title),
+    chapterPagination: {
+      totalPages: Math.ceil(totalChapters / chapterLimit),
+      currentPage: chapterPage,
+      totalChapters,
+    },
+  };
 };
 
 export async function searchAndFilterBooks(

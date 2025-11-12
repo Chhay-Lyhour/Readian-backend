@@ -15,6 +15,7 @@ import {
   updateBookSchema,
   searchBookSchema,
   paginationQuerySchema,
+  chapterPaginationQuerySchema,
 } from "../dto/bookValidationSchemas.js";
 import * as likeController from "../controllers/likeController.js";
 
@@ -40,7 +41,12 @@ router.get(
 // This route now uses `softAuth`. If a user is logged in, their details are
 // attached to the request. If not, the request proceeds as anonymous.
 // The service layer will handle the subscription check.
-router.get("/:id", softAuth, controller.getBookById);
+router.get(
+  "/:id",
+  softAuth,
+  validateRequestQuery(chapterPaginationQuerySchema),
+  controller.getBookById
+);
 
 // --- Protected Routes (AUTHOR or ADMIN) ---
 // These actions require a valid token and specific roles.

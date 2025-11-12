@@ -13,9 +13,12 @@ export async function getAllBooks(req, res, next) {
 
 export async function getBookById(req, res, next) {
   try {
-    // Pass req.user if it exists (from softAuth middleware), otherwise undefined
     const tokenUser = req.user || undefined;
-    const book = await bookService.getBookById(req.params.id, tokenUser);
+    const { chapterPage, chapterLimit } = req.query;
+    const book = await bookService.getBookById(req.params.id, tokenUser, {
+      chapterPage,
+      chapterLimit,
+    });
     sendSuccessResponse(res, book, "Book retrieved successfully.");
   } catch (error) {
     next(error);

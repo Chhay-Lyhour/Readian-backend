@@ -6,12 +6,6 @@ const bookSchema = new Schema(
       type: String,
       required: [true, "Title is required"],
     },
-    chapter: {
-      type: Number,
-      required: [true, "Chapter is required"],
-      default: 0,
-    },
-    tableOfContents: String,
     readingTime: String,
     author: {
       type: Schema.Types.ObjectId,
@@ -32,7 +26,6 @@ const bookSchema = new Schema(
     },
     isPremium: Boolean,
     publishedDate: Date,
-    description: String,
     viewCount: {
       type: Number,
       default: 0,
