@@ -1,8 +1,8 @@
 import request from "supertest";
-import app from "../app.js";
-import { connectDB, disconnectDB, clearDB } from "../config/db.js";
-import BookModel from "../models/bookModel.js";
-import { User } from "../models/userModel.js";
+import app from "../../app.js";
+import { connectDB, disconnectDB, clearDB } from "../../config/db.js";
+import BookModel from "../../models/bookModel.js";
+import { User } from "../../models/userModel.js";
 
 beforeAll(async () => {
   await connectDB();
