@@ -8,6 +8,7 @@ import { userRouter } from "./routes/user/userRoute.js";
 import subscriptionRouter from "./routes/user/subscriptionRoute.js";
 import adminRouter from "./routes/admin/adminRoute.js";
 import analyticsRouter from "./routes/public/analyticsRoute.js";
+import paymentRouter from "./routes/user/paymentRoute.js";
 import cors from "cors";
 import helmet from "helmet";
 import {
@@ -38,6 +39,7 @@ app.use("/api/users", userRouter);
 app.use("/api/subscriptions", subscriptionRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/analytics", analyticsRouter);
+app.use("/api/payments", paymentRouter);
 
 app.get("/", (req, res) => {
   res.send("Hello from Node API server updated");

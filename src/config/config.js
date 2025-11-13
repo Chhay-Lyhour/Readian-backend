@@ -21,19 +21,23 @@ const config = {
   mongoUri: process.env.MONGO_URI || "",
   testMongoUri: process.env.TEST_MONGO_URI || "",
 
+  bcryptSaltRounds: parseInt(process.env.BCRYPT_SALT_ROUNDS || "12", 10),
+
   jwtAccessSecret: process.env.JWT_ACCESS_SECRET,
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET,
-  jwtAccessExpiry: process.env.JWT_ACCESS_EXPIRY || "900",
-  jwtRefreshExpiry: process.env.JWT_REFRESH_EXPIRY || "1209600",
-
-  bcryptSaltRounds: process.env.BCRYPT_SALT_ROUNDS || "12",
-
-  emailVerificationExpiry: process.env.EMAIL_VERIFICATION_EXPIRY || "900",
-
-  gmailHost: process.env.GMAIL_HOST,
-  gmailUser: process.env.GMAIL_USER,
-  gmailPass: process.env.GMAIL_PASS,
-  fromEmail: process.env.FROM_EMAIL,
+  frontendUrl: process.env.FRONTEND_URL,
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    apiKey: process.env.CLOUDINARY_API_KEY,
+    apiSecret: process.env.CLOUDINARY_API_SECRET,
+  },
+  aba: {
+    merchantId: process.env.ABA_MERCHANT_ID,
+    apiKey: process.env.ABA_API_KEY,
+    paywayApiUrl: process.env.ABA_PAYWAY_API_URL || "https://payway-sandbox.ababank.com",
+    returnUrl: process.env.ABA_RETURN_URL,
+    continueSuccessUrl: process.env.ABA_CONTINUE_SUCCESS_URL,
+  },
 };
 
 export { config };

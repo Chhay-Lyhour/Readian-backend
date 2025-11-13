@@ -12,6 +12,10 @@ afterAll(async () => {
   await disconnectDB();
 });
 
+afterEach(async () => {
+  await clearDB();
+});
+
 beforeEach(async () => {
   await clearDB();
   const user1 = await User.create({

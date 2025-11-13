@@ -1,33 +1,32 @@
 import * as subscriptionService from "../services/subscriptionService.js";
+import { paymentService } from "../services/paymentService.js";
 import { sendSuccessResponse } from "../utils/responseHandler.js";
 
 const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
 
-const subscribe = asyncHandler(async (req, res) => {
+const createSubscriptionPayment = asyncHandler(async (req, res) => {
   const userId = req.user.id;
-  const { plan } = req.body; // <-- 1. Get the plan from the validated body
+  const { tier } = req.body; // 'monthly' or 'yearly'
 
-  // 2. Pass the chosen plan to the service
-  const subscription = await subscriptionService.activateSubscription(
-    userId,
-    plan
-  );
+  // 1. Create a pending subscription
+  const subscription = await subscriptionService.createSubscription(userId, tier);
 
-  // 3. Send a more specific success message
+  // 2. Create a payment for that subscription
+  const paymentDetails = await paymentService.createPayment(subscription._id, userId);
+
   sendSuccessResponse(
     res,
-    subscription,
-    `Subscription activated successfully for the ${plan} plan.`
+    paymentDetails,
+    `Payment QR code created for ${tier} subscription.`
   );
 });
 
-// This controller function remains unchanged
 const getStatus = asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const status = await subscriptionService.getSubscriptionStatus(userId);
   sendSuccessResponse(res, status, "Subscription status retrieved.");
 });
 
-export { subscribe, getStatus };
+export { createSubscriptionPayment, getStatus };
