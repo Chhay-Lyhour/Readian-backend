@@ -12,6 +12,8 @@ import paymentRouter from "./routes/user/paymentRoute.js";
 import chapterRouter from "./routes/author/chapterRoute.js";
 import cors from "cors";
 import helmet from "helmet";
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "./config/swagger.js";
 import {
   errorHandler,
   notFoundHandler,
@@ -30,6 +32,9 @@ app.use(helmet());
 app.use(cors({ origin: config.frontendUrl, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Swagger Docs
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Routes
 app.use("/api/books", publicBookRouter);

@@ -30,8 +30,138 @@ import { sendSuccessResponse } from "../../utils/responseHandler.js";
 
 const router = Router();
 
-// Public Routes
+/**
+ * @swagger
+ * tags:
+ *   name: Auth
+ *   description: User authentication and authorization
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     User:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: The user ID.
+ *         name:
+ *           type: string
+ *           description: The user's name.
+ *         email:
+ *           type: string
+ *           description: The user's email.
+ *         role:
+ *           type: string
+ *           enum: [USER, AUTHOR, ADMIN]
+ *           description: The user's role.
+ *     Tokens:
+ *       type: object
+ *       properties:
+ *         accessToken:
+ *           type: string
+ *         refreshToken:
+ *           type: string
+ */
+
+/**
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - password
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       201:
+ *         description: User registered successfully.
+ *       400:
+ *         description: Bad request (e.g., validation error).
+ *       409:
+ *         description: Email already exists.
+ */
 router.post("/register", validateRequestBody(registerRequestSchema), register);
+
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: Log in a user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       200:
+ *         description: Login successful.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *                 tokens:
+ *                   $ref: '#/components/schemas/Tokens'
+ *       401:
+ *         description: Invalid credentials or email not verified.
+ */
+router.post("/login", validateRequestBody(loginRequestSchema), login);
+
+/**
+ * @swagger
+ * /auth/me:
+ *   get:
+ *     summary: Get current user profile
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Unauthorized.
+ */
+router.get("/me", requireAuth, getCurrentUser);
+
+// ... (add swagger docs for other routes)
+
 router.post(
   "/verify-email",
   validateRequestBody(verifyEmailRequestSchema),
@@ -42,7 +172,6 @@ router.post(
   validateRequestBody(resendVerificationEmailSchema),
   resendVerificationCodeController
 );
-router.post("/login", validateRequestBody(loginRequestSchema), login);
 router.post(
   "/forgot-password",
   validateRequestBody(forgotPasswordRequestSchema),
@@ -62,7 +191,6 @@ router.post(
 // --- Protected Routes ---
 router.use(requireAuth); // All routes below this will be protected
 
-router.get("/me", getCurrentUser);
 router.post(
   "/refresh-token",
   validateRequestBody(refreshTokenRequestSchema),
