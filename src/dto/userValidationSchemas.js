@@ -3,6 +3,7 @@ import { z } from "zod";
 // For: PATCH /api/users/me (a user updating their own profile)
 export const updateProfileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").optional(),
+  email: z.string().email("Invalid email format").optional(),
   bio: z.string().max(500, "Bio cannot exceed 500 characters").optional(),
 });
 
@@ -17,6 +18,7 @@ export const changePasswordSchema = z.object({
 // For: PATCH /api/users/:id (an admin updating any user)
 export const updateUserByAdminSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").optional(),
+  email: z.string().email("Invalid email format").optional(),
   role: z.enum(["READER", "AUTHOR", "ADMIN"]).optional(),
   email_verified: z.boolean().optional(),
 });

@@ -119,3 +119,16 @@ export async function getLikedBooks(req, res, next) {
     next(error);
   }
 }
+
+export async function getCurrentUser(req, res, next) {
+  try {
+    // req.user is set by the auth middleware
+    const user = req.user;
+    if (!user) {
+      throw new AppError("USER_NOT_FOUND", "User not found.", 404);
+    }
+    sendSuccessResponse(res, user, "User profile retrieved successfully.");
+  } catch (error) {
+    next(error);
+  }
+}

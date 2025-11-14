@@ -1,5 +1,6 @@
 import { Router } from "express";
 import * as controller from "../../controllers/userController.js";
+import { getCurrentUser } from "../../controllers/userController.js";
 import { requireAuth, requireRole } from "../../middlewares/authMiddleware.js";
 import { validateRequestBody } from "../../middlewares/requestValidatorMiddleware.js";
 import * as schemas from "../../dto/userValidationSchemas.js";
@@ -16,6 +17,8 @@ userRouter.patch(
   validateRequestBody(schemas.updateProfileSchema),
   controller.updateCurrentUserProfile
 );
+
+userRouter.get("/me", controller.getCurrentUser);
 
 // A user can update their own profile image
 userRouter.patch(

@@ -3,7 +3,6 @@ import {
   register,
   verifyEmailAddress,
   login,
-  getCurrentUser,
   resendVerificationCodeController,
   refreshToken,
   logout,
@@ -139,26 +138,6 @@ router.post("/register", validateRequestBody(registerRequestSchema), register);
  *         description: Invalid credentials or email not verified.
  */
 router.post("/login", validateRequestBody(loginRequestSchema), login);
-
-/**
- * @swagger
- * /auth/me:
- *   get:
- *     summary: Get current user profile
- *     tags: [Auth]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: User profile retrieved successfully.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/User'
- *       401:
- *         description: Unauthorized.
- */
-router.get("/me", requireAuth, getCurrentUser);
 
 // ... (add swagger docs for other routes)
 
