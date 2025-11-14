@@ -11,9 +11,9 @@ import {
   verifyPasswordResetCodeController,
   resetPasswordController,
   changePasswordController,
-} from "../../controllers/authController.js";
-import { requireAuth, requireRole } from "../../middlewares/authMiddleware.js";
-import { validateRequestBody } from "../../middlewares/requestValidatorMiddleware.js";
+} from "../controllers/authController.js";
+import { requireAuth, requireRole } from "../middlewares/authMiddleware.js";
+import { validateRequestBody } from "../middlewares/requestValidatorMiddleware.js";
 import {
   registerRequestSchema,
   loginRequestSchema,
@@ -24,8 +24,8 @@ import {
   resetPasswordRequestSchema,
   resendVerificationEmailSchema,
   verifyResetCodeRequestSchema,
-} from "../../dto/authValidationSchemas.js";
-import { sendSuccessResponse } from "../../utils/responseHandler.js";
+} from "../dto/authValidationSchemas.js";
+import { sendSuccessResponse } from "../utils/responseHandler.js";
 
 const router = Router();
 

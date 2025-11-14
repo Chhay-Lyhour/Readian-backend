@@ -1,8 +1,11 @@
 import { Router } from "express";
-import { chapterController } from "../../controllers/chapterController.js";
-import { requireAuth, requireRole } from "../../middlewares/authMiddleware.js";
-import { validateRequestBody } from "../../middlewares/requestValidatorMiddleware.js";
-import { createChapterSchema, updateChapterSchema } from "../../dto/chapterValidationSchemas.js";
+import { chapterController } from "../controllers/chapterController.js";
+import { requireAuth, requireRole } from "../middlewares/authMiddleware.js";
+import { validateRequestBody } from "../middlewares/requestValidatorMiddleware.js";
+import {
+  createChapterSchema,
+  updateChapterSchema,
+} from "../dto/chapterValidationSchemas.js";
 
 const router = Router();
 

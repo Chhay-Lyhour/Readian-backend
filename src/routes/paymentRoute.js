@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { paymentController } from "../../controllers/paymentController.js";
-import { requireAuth } from "../../middlewares/authMiddleware.js";
-import { validateRequestBody } from "../../middlewares/requestValidatorMiddleware.js";
-import { createPaymentSchema } from "../../dto/paymentValidationSchemas.js";
+import { paymentController } from "../controllers/paymentController.js";
+import { requireAuth } from "../middlewares/authMiddleware.js";
+import { validateRequestBody } from "../middlewares/requestValidatorMiddleware.js";
+import { createPaymentSchema } from "../dto/paymentValidationSchemas.js";
 
 const router = Router();
 
