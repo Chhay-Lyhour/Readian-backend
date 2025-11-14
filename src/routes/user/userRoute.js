@@ -1,9 +1,9 @@
 import { Router } from "express";
-import * as controller from "../controllers/userController.js";
-import { requireAuth, requireRole } from "../middlewares/authMiddleware.js";
-import { validateRequestBody } from "../middlewares/requestValidatorMiddleware.js";
-import * as schemas from "../dto/userValidationSchemas.js";
-import { uploadSingleImage } from "../middlewares/uploadMiddleware.js";
+import * as controller from "../../controllers/userController.js";
+import { requireAuth, requireRole } from "../../middlewares/authMiddleware.js";
+import { validateRequestBody } from "../../middlewares/requestValidatorMiddleware.js";
+import * as schemas from "../../dto/userValidationSchemas.js";
+import { uploadSingleImage } from "../../middlewares/uploadMiddleware.js";
 
 export const userRouter = Router();
 
@@ -16,8 +16,6 @@ userRouter.patch(
   validateRequestBody(schemas.updateProfileSchema),
   controller.updateCurrentUserProfile
 );
-
-userRouter.get("/me", controller.getCurrentUser);
 
 // A user can update their own profile image
 userRouter.patch(

@@ -40,12 +40,6 @@ const bookSchema = new Schema(
         ref: "User",
       },
     ],
-    chapters: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Chapter",
-      },
-    ],
   },
   {
     timestamps: true,

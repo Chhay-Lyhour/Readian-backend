@@ -1,48 +1,48 @@
 import { User } from "../models/userModel.js";
-import Subscription from "../models/subscriptionModel.js";
 import { AppError } from "../utils/errorHandler.js";
 
 /**
- * Creates a new subscription record with a 'pending' status.
+ * UPDATED: Activates a 30-day subscription for a user for a specific plan.
  * @param {string} userId - The ID of the user subscribing.
- * @param {string} tier - The subscription tier ('monthly' or 'yearly').
+ * @param {string} plan - The plan they are subscribing to ('basic' or 'premium').
  */
-const createSubscription = async (userId, tier) => {
+const activateSubscription = async (userId, plan) => {
   const user = await User.findById(userId);
   if (!user) {
     throw new AppError("USER_NOT_FOUND");
   }
 
-  const amounts = {
-    monthly: 5.00,
-    yearly: 50.00,
+  const now = new Date();
+  const expiresAt = new Date(new Date().setDate(now.getDate() + 30)); // 30 days from now
+
+  // --- UPDATE THE USER DOCUMENT ---
+  user.plan = plan; // <-- 1. Set the chosen plan
+  user.subscriptionStatus = "active"; // 2. Set status to active
+  user.subscriptionExpiresAt = expiresAt; // 3. Set expiration
+
+  await user.save();
+
+  // Return the new subscription details
+  return {
+    plan: user.plan,
+    subscriptionStatus: user.subscriptionStatus,
+    subscriptionExpiresAt: user.subscriptionExpiresAt,
   };
-
-  if (!amounts[tier]) {
-    throw new AppError("Invalid subscription tier.", 400);
-  }
-
-  // Create a new subscription document
-  const subscription = await Subscription.create({
-    user: userId,
-    tier,
-    amount: amounts[tier],
-    status: "pending",
-  });
-
-  return subscription;
 };
 
 /**
- * Retrieves the current subscription status for a user.
+ * UPDATED: Retrieves the current subscription status for a user, including their plan.
  * @param {string} userId - The ID of the user.
  */
 const getSubscriptionStatus = async (userId) => {
-  const subscription = await Subscription.findOne({ user: userId }).sort({ createdAt: -1 });
-  if (!subscription) {
-    return { status: "inactive" };
+  // We now also select the 'plan' field to return it to the user
+  const user = await User.findById(userId).select(
+    "plan subscriptionStatus subscriptionExpiresAt"
+  );
+  if (!user) {
+    throw new AppError("USER_NOT_FOUND");
   }
-  return subscription;
+  return user;
 };
 
-export { createSubscription, getSubscriptionStatus };
+export { activateSubscription, getSubscriptionStatus };
