@@ -4,6 +4,14 @@ import * as authService from "../services/authService.js";
 import { sendSuccessResponse } from "../utils/responseHandler.js";
 import { AppError } from "../utils/errorHandler.js";
 
+export async function getCurrentUserProfile(req, res, next) {
+  try {
+    sendSuccessResponse(res, req.user, "User profile retrieved successfully.");
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function changePassword(req, res, next) {
   try {
     const result = await authService.changePassword(req.user.id, req.body);

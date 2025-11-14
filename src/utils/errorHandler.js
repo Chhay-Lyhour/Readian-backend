@@ -19,6 +19,7 @@ const ERROR_MAP = {
   },
   USER_NOT_FOUND: { statusCode: 404, message: "User not found." },
   BOOK_NOT_FOUND: { statusCode: 404, message: "Book not found." },
+  CHAPTER_NOT_FOUND: { statusCode: 404, message: "Chapter not found." },
   BOOK_ALREADY_PUBLISHED: {
     statusCode: 409,
     message: "This book has already been published.",

@@ -1,17 +1,9 @@
-import { Schema, model } from "mongoose";
+import mongoose from "mongoose";
 
-const chapterSchema = new Schema(
+const chapterSchema = new mongoose.Schema(
   {
-    title: {
-      type: String,
-      required: [true, "Chapter title is required"],
-    },
-    content: {
-      type: String,
-      required: [true, "Chapter content is required"],
-    },
     book: {
-      type: Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: "Book",
       required: true,
     },
@@ -19,14 +11,26 @@ const chapterSchema = new Schema(
       type: Number,
       required: true,
     },
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    content: {
+      type: String,
+      required: true,
+    },
+    isPremium: {
+      type: Boolean,
+      default: false,
+    },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
+// Ensure that for a given book, chapter numbers are unique
 chapterSchema.index({ book: 1, chapterNumber: 1 }, { unique: true });
 
-const ChapterModel = model("Chapter", chapterSchema);
+const ChapterModel = mongoose.model("Chapter", chapterSchema);
 
 export default ChapterModel;

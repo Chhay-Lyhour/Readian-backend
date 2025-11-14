@@ -30,7 +30,9 @@ beforeEach(async () => {
   const book = await BookModel.create({
     title: "Test Book",
     author: userId,
-    chapter: 1,
+    genre: "Fiction",
+    coverImage: "http://example.com/cover.jpg",
+    description: "A test book.",
   });
   bookId = book._id;
 

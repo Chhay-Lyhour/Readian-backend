@@ -29,19 +29,17 @@ userRouter.post("/me/become-author", controller.becomeAuthor);
 
 userRouter.get(
   "/me/books",
-  requireAuth,
   requireRole(["AUTHOR", "ADMIN"]),
   controller.getMyBooks
 );
 
 userRouter.get(
   "/me/author-stats",
-  requireAuth,
   requireRole(["AUTHOR", "ADMIN"]),
   controller.getAuthorStats
 );
 
-userRouter.get("/me/liked-books", requireAuth, controller.getLikedBooks);
+userRouter.get("/me/liked-books", controller.getLikedBooks);
 
 // A user can change their own password
 userRouter.post(
@@ -49,6 +47,8 @@ userRouter.post(
   validateRequestBody(schemas.changePasswordSchema),
   controller.changePassword
 );
+
+userRouter.get("/me", controller.getCurrentUserProfile);
 
 // --- Admin-Only Routes ---
 // The routes below are only accessible to users with the 'ADMIN' role

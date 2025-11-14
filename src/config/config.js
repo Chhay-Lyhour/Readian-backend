@@ -1,7 +1,5 @@
 import dotenv from "dotenv";
 
-dotenv.config();
-
 // Validate JWT secrets at startup
 if (!process.env.JWT_ACCESS_SECRET || !process.env.JWT_REFRESH_SECRET) {
   console.error("FATAL ERROR: JWT secrets are not defined.");

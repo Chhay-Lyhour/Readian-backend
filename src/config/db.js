@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
 import { config } from "./config.js";
-import "dotenv/config";
 
 const connectDB = async () => {
   try {
     const mongoUri =
       process.env.NODE_ENV === "test" ? config.testMongoUri : config.mongoUri;
+    console.log("Connecting to MongoDB with URI:", mongoUri);
     await mongoose.connect(mongoUri);
     console.log("MongoDB connected successfully.");
   } catch (error) {

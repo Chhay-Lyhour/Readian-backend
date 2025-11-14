@@ -26,7 +26,9 @@ beforeEach(async () => {
   book = await BookModel.create({
     title: "Test Book",
     author: user._id,
-    chapter: 1,
+    genre: "Fiction",
+    coverImage: "http://example.com/cover.jpg",
+    description: "A test book.",
   });
 });
 

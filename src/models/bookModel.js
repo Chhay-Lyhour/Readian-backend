@@ -4,32 +4,37 @@ const bookSchema = new Schema(
   {
     title: {
       type: String,
-      required: [true, "Title is required"],
+      required: true,
+      trim: true,
     },
-    readingTime: String,
     author: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
-    tags: String,
-    genre: String,
-    rating: Number,
-    image: {
+    description: {
       type: String,
-      required: false,
+      required: true,
+    },
+    coverImage: {
+      type: String,
+      required: true,
+    },
+    genre: {
+      type: String,
+      required: true,
     },
     status: {
       type: String,
       enum: ["draft", "published"],
       default: "draft",
     },
-    isPremium: Boolean,
-    publishedDate: Date,
-    viewCount: {
-      type: Number,
-      default: 0,
-    },
+    chapters: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Chapter",
+      },
+    ],
     likes: {
       type: Number,
       default: 0,
@@ -40,10 +45,12 @@ const bookSchema = new Schema(
         ref: "User",
       },
     ],
+    viewCount: {
+      type: Number,
+      default: 0,
+    },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
 const BookModel = model("Book", bookSchema);

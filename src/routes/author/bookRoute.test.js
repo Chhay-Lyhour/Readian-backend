@@ -9,7 +9,7 @@ beforeAll(async () => {
   await connectDB();
 });
 
-afterEach(async () => {
+beforeEach(async () => {
   await clearDB();
 });
 
@@ -35,9 +35,9 @@ describe("Book Routes: /api/books", () => {
 
       // Create sample books
       await BookModel.create([
-        { title: "Published Book 1", status: "published", author: authorId },
-        { title: "Published Book 2", status: "published", author: authorId },
-        { title: "Draft Book", status: "draft", author: authorId }, // This should not be returned
+        { title: "Published Book 1", status: "published", author: authorId, genre: "Fiction", coverImage: "http://example.com/cover.jpg", description: "A test book." },
+        { title: "Published Book 2", status: "published", author: authorId, genre: "Fiction", coverImage: "http://example.com/cover.jpg", description: "A test book." },
+        { title: "Draft Book", status: "draft", author: authorId, genre: "Fiction", coverImage: "http://example.com/cover.jpg", description: "A test book." }, // This should not be returned
       ]);
 
       const response = await request(app).get("/api/books?page=1&limit=5");

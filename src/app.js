@@ -5,9 +5,9 @@ import userBookRouter from "./routes/user/bookRoute.js";
 import authorBookRouter from "./routes/author/bookRoute.js";
 import authRouter from "./routes/public/authRoute.js";
 import { userRouter } from "./routes/user/userRoute.js";
-import subscriptionRouter from "./routes/user/subscriptionRoute.js";
 import adminRouter from "./routes/admin/adminRoute.js";
 import analyticsRouter from "./routes/public/analyticsRoute.js";
+import chapterRouter from "./routes/author/chapterRoute.js";
 import cors from "cors";
 import helmet from "helmet";
 import {
@@ -35,9 +35,9 @@ app.use("/api/books", userBookRouter);
 app.use("/api/books", authorBookRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
-app.use("/api/subscriptions", subscriptionRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/analytics", analyticsRouter);
+app.use("/api", chapterRouter);
 
 app.get("/", (req, res) => {
   res.send("Hello from Node API server updated");

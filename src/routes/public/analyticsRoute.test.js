@@ -26,12 +26,12 @@ beforeEach(async () => {
   });
 
   await BookModel.create([
-    { title: "Book 1", author: user1._id, status: "published", viewCount: 100, chapter: 1 },
-    { title: "Book 2", author: user2._id, status: "published", viewCount: 200, chapter: 1 },
-    { title: "Book 3", author: user1._id, status: "published", viewCount: 50, chapter: 1 },
-    { title: "Book 4", author: user2._id, status: "published", viewCount: 300, chapter: 1 },
-    { title: "Book 5", author: user1._id, status: "published", viewCount: 150, chapter: 1 },
-    { title: "Book 6", author: user2._id, status: "draft", viewCount: 500, chapter: 1 },
+    { title: "Book 1", author: user1._id, status: "published", viewCount: 100, genre: "Fiction", coverImage: "http://example.com/cover.jpg", description: "A test book." },
+    { title: "Book 2", author: user2._id, status: "published", viewCount: 200, genre: "Fiction", coverImage: "http://example.com/cover.jpg", description: "A test book." },
+    { title: "Book 3", author: user1._id, status: "published", viewCount: 50, genre: "Fiction", coverImage: "http://example.com/cover.jpg", description: "A test book." },
+    { title: "Book 4", author: user2._id, status: "published", viewCount: 300, genre: "Fiction", coverImage: "http://example.com/cover.jpg", description: "A test book." },
+    { title: "Book 5", author: user1._id, status: "published", viewCount: 150, genre: "Fiction", coverImage: "http://example.com/cover.jpg", description: "A test book." },
+    { title: "Book 6", author: user2._id, status: "draft", viewCount: 500, genre: "Fiction", coverImage: "http://example.com/cover.jpg", description: "A test book." },
   ]);
 });
 
