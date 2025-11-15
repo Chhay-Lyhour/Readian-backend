@@ -1,7 +1,7 @@
 import request from "supertest";
-import app from "../../app.js";
-import { connectDB, disconnectDB, clearDB } from "../../config/db.js";
-import BookModel from "../../models/bookModel.js";
+import app from "../app.js";
+import { connectDB, disconnectDB, clearDB } from "../config/db.js";
+import BookModel from "../models/bookModel.js";
 import mongoose from "mongoose";
 
 // --- TEST SETUP ---
