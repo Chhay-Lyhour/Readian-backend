@@ -4,6 +4,7 @@ import { User } from "../models/userModel.js";
 import { AppError } from "../utils/errorHandler.js";
 import { uploadFromBuffer } from "./uploadService.js";
 import { calculateReadingTime } from "../utils/readingTimeCalculator.js";
+import { checkAndHandleExpiredSubscription } from "./subscriptionService.js";
 import mongoose from "mongoose";
 
 /**
@@ -73,10 +74,49 @@ export async function getAllBooks({ page, limit }) {
 
 /**
  * Retrieves all books by a specific author.
+ * Only returns books that belong to the specified author (never returns other authors' books).
  * @param {string} authorId - The ID of the author.
+ * @param {object} options - Optional filtering and pagination options.
+ * @param {string} options.status - Filter by status: 'draft' or 'published' (optional).
+ * @param {number} options.page - Page number for pagination (optional).
+ * @param {number} options.limit - Number of items per page (optional).
  */
-export async function getBooksByAuthor(authorId) {
-  return BookModel.find({ author: authorId });
+export async function getBooksByAuthor(authorId, options = {}) {
+  const { status, page, limit } = options;
+
+  // Build query - always filter by author to ensure they only see their own books
+  const query = { author: authorId };
+
+  // Optional status filter
+  if (status) {
+    query.status = status;
+  }
+
+  // If no pagination provided, return all books (backward compatibility)
+  if (!page && !limit) {
+    return BookModel.find(query).sort({ createdAt: -1 });
+  }
+
+  // Calculate pagination
+  const pageNum = page || 1;
+  const limitNum = limit || 10;
+  const skip = (pageNum - 1) * limitNum;
+
+  // Execute query with pagination
+  const [books, totalItems] = await Promise.all([
+    BookModel.find(query)
+      .sort({ createdAt: -1 }) // Most recent first
+      .skip(skip)
+      .limit(limitNum),
+    BookModel.countDocuments(query),
+  ]);
+
+  return {
+    books,
+    totalPages: Math.ceil(totalItems / limitNum),
+    currentPage: pageNum,
+    totalItems,
+  };
 }
 
 /**
@@ -123,6 +163,9 @@ export const getBookById = async (
     if (!dbUser) {
       throw new AppError("USER_NOT_FOUND");
     }
+
+    // Check and handle expired subscriptions (auto-downgrade to free)
+    await checkAndHandleExpiredSubscription(dbUser);
 
     const isSubscriptionActive =
       dbUser.subscriptionStatus === "active" &&
@@ -316,7 +359,10 @@ export async function publishBook(bookId, authorId) {
   }
 
   if (book.status === "published") {
-    throw new AppError("BOOK_ALREADY_PUBLISHED", "This book is already published.");
+    throw new AppError(
+      "BOOK_ALREADY_PUBLISHED",
+      "This book is already published."
+    );
   }
 
   book.status = "published";

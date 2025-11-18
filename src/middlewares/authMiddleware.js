@@ -12,7 +12,7 @@ const requireAuth = async (req, res, next) => {
     if (!token) throw new AppError("TOKEN_INVALID");
 
     const decoded = verifyAccessToken(token);
-    const user = await userRepo.findUserById(decoded.id);
+    const user = await userRepo.findUserById(decoded.userId);
     if (!user) {
       return next(new AppError("USER_NOT_FOUND", "User not found."));
     }
@@ -42,7 +42,7 @@ const softAuth = async (req, res, next) => {
     const token = extractTokenFromHeader(req.headers.authorization);
     if (token) {
       const decoded = verifyAccessToken(token);
-      const user = await userRepo.findUserById(decoded.id);
+      const user = await userRepo.findUserById(decoded.userId);
       if (user) {
         req.user = user;
       }

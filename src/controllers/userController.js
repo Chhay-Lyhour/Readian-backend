@@ -22,7 +22,11 @@ export async function updateProfileImage(req, res, next) {
       req.user.id,
       req.file
     );
-    sendSuccessResponse(res, updatedUser, "Profile image updated successfully.");
+    sendSuccessResponse(
+      res,
+      updatedUser,
+      "Profile image updated successfully."
+    );
   } catch (error) {
     next(error);
   }
@@ -95,7 +99,15 @@ export async function deleteUser(req, res, next) {
 
 export async function getMyBooks(req, res, next) {
   try {
-    const books = await bookService.getBooksByAuthor(req.user.id);
+    const { status, page, limit } = req.query;
+    const options = {};
+
+    // Add optional filters
+    if (status) options.status = status;
+    if (page) options.page = parseInt(page);
+    if (limit) options.limit = parseInt(limit);
+
+    const books = await bookService.getBooksByAuthor(req.user.id, options);
     sendSuccessResponse(res, books, "Your books retrieved successfully.");
   } catch (error) {
     next(error);

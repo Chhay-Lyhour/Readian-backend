@@ -26,14 +26,11 @@ export const createBookSchema = z.object({
 // For: PATCH /api/books/:id (updating a book)
 export const updateBookSchema = z.object({
   title: z.string().min(1).optional(),
-  readingTime: z.string().optional(),
-  author: z.string().optional(),
   tags: z.string().optional(),
   genre: z.string().optional(),
   rating: z.number().min(0).max(5).optional(),
-  review: z.string().optional(),
   image: z.string().optional(),
-  isPublished: z.boolean().optional(),
+  status: z.enum(["draft", "published"]).optional(),
   isPremium: z.boolean().optional(),
   publishedDate: z.coerce.date().optional(),
   chapters: z

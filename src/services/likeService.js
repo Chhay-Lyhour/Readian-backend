@@ -22,13 +22,21 @@ export async function likeBook(userId, bookId) {
       throw new AppError("USER_NOT_FOUND", "User not found.");
     }
 
-    if (book.likedBy.includes(userId)) {
+    // Convert userId to ObjectId for proper comparison
+    const userIdObjectId = new mongoose.Types.ObjectId(userId);
+    const bookIdObjectId = new mongoose.Types.ObjectId(bookId);
+
+    // Check if user already liked this book (using ObjectId comparison)
+    const alreadyLiked = book.likedBy.some(
+      (id) => id.toString() === userIdObjectId.toString()
+    );
+    if (alreadyLiked) {
       throw new AppError("ALREADY_LIKED", "You have already liked this book.");
     }
 
     book.likes += 1;
-    book.likedBy.push(userId);
-    user.likedBooks.push(bookId);
+    book.likedBy.push(userIdObjectId);
+    user.likedBooks.push(bookIdObjectId);
 
     await book.save({ session });
     await user.save({ session });
@@ -62,13 +70,21 @@ export async function unlikeBook(userId, bookId) {
       throw new AppError("USER_NOT_FOUND", "User not found.");
     }
 
-    if (!book.likedBy.includes(userId)) {
+    // Convert userId to ObjectId for proper comparison
+    const userIdObjectId = new mongoose.Types.ObjectId(userId);
+    const bookIdObjectId = new mongoose.Types.ObjectId(bookId);
+
+    // Check if user has liked this book (using ObjectId comparison)
+    const hasLiked = book.likedBy.some(
+      (id) => id.toString() === userIdObjectId.toString()
+    );
+    if (!hasLiked) {
       throw new AppError("NOT_LIKED", "You have not liked this book.");
     }
 
     book.likes -= 1;
-    book.likedBy.pull(userId);
-    user.likedBooks.pull(bookId);
+    book.likedBy.pull(userIdObjectId);
+    user.likedBooks.pull(bookIdObjectId);
 
     await book.save({ session });
     await user.save({ session });
