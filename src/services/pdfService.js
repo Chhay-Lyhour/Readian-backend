@@ -30,16 +30,25 @@ export const generateBookPDF = async (bookId) => {
     );
   }
 
+  // Validate that at least one chapter has content
+  const hasContent = chapters.some(ch => ch.content && ch.content.trim().length > 0);
+  if (!hasContent) {
+    throw new AppError(
+      "NO_CONTENT",
+      "This book has no readable content available for download",
+      400
+    );
+  }
+
   // Create PDF document with optimized settings for better page utilization
   const doc = new PDFDocument({
     size: "A4",
     margins: {
       top: 50,
-      bottom: 60,
+      bottom: 50,
       left: 50,
       right: 50,
     },
-    bufferPages: true,
     autoFirstPage: false,
     info: {
       Title: book.title,
@@ -64,15 +73,7 @@ export const generateBookPDF = async (bookId) => {
     addChapter(doc, chapter);
   });
 
-  // Add page numbers to all pages using buffering
-  const range = doc.bufferedPageRange();
-  for (let i = 0; i < range.count; i++) {
-    doc.switchToPage(i);
-    const pageNumber = i + 1;
-    addPageNumber(doc, pageNumber, book.title);
-  }
-
-  // Finalize PDF
+  // Finalize PDF (no footer/page numbers)
   doc.end();
 
   // Generate filename
@@ -239,7 +240,7 @@ function addTableOfContents(doc, chapters) {
       .moveDown(0.6);
 
     // Add a subtle separator line after every 6 chapters for readability
-    if ((index + 1) % 6 === 0 && index < chapters.length - 1) {
+    if ((index + 1) % 10 === 0 && index < chapters.length - 1) {
       doc.moveDown(0.3);
       const lineY = doc.y;
       doc
@@ -306,77 +307,9 @@ function addChapter(doc, chapter) {
     });
 }
 
-/**
- * Add page number to the current page
- */
-function addPageNumber(doc, pageNumber, bookTitle) {
-  // Save the current Y position
-  const oldY = doc.y;
 
-  // Save the graphics state
-  doc.save();
 
-  // Add page number at bottom center using direct positioning
-  const pageNumberY = doc.page.height - 50;
-  const pageNumberX = doc.page.width / 2;
 
-  doc
-    .fontSize(10)
-    .font("Helvetica")
-    .fillColor("#666666")
-    .text(
-      String(pageNumber),
-      pageNumberX - 20,
-      pageNumberY,
-      {
-        width: 40,
-        align: "center",
-        lineBreak: false,
-      }
-    );
-
-  // Restore graphics state
-  doc.restore();
-
-  // Restore Y position
-  doc.y = oldY;
-}
-
-/**
- * Add watermark to current page
- */
-function addWatermark(doc, userEmail) {
-  // Save current position
-  const currentY = doc.y;
-
-  // Save graphics state
-  doc.save();
-
-  // Add very subtle watermark at bottom of page
-  const watermarkY = doc.page.height - 25;
-  const watermarkText = `Licensed to: ${userEmail}`;
-
-  doc
-    .fontSize(7)
-    .font("Helvetica-Oblique")
-    .fillOpacity(0.05)
-    .text(
-      watermarkText,
-      doc.page.margins.left,
-      watermarkY,
-      {
-        width: doc.page.width - 2 * doc.page.margins.left,
-        align: "center",
-        lineBreak: false,
-      }
-    );
-
-  // Restore graphics state
-  doc.restore();
-
-  // Restore Y position so it doesn't affect layout
-  doc.y = currentY;
-}
 
 /**
  * Sanitize filename for safe file system usage
@@ -389,9 +322,9 @@ function sanitizeFilename(filename) {
 }
 
 /**
- * Generate PDF with watermark for specific user
+ * Generate PDF for a book (same as generateBookPDF, kept for backward compatibility)
  * @param {string} bookId - The ID of the book
- * @param {string} userEmail - The user's email for watermarking
+ * @param {string} userEmail - The user's email (not used, kept for compatibility)
  * @returns {Promise<{stream: PDFDocument, filename: string}>}
  */
 export const generateWatermarkedPDF = async (bookId, userEmail) => {
@@ -415,16 +348,25 @@ export const generateWatermarkedPDF = async (bookId, userEmail) => {
     );
   }
 
-  // Create PDF document with optimized settings
+  // Validate that at least one chapter has content
+  const hasContent = chapters.some(ch => ch.content && ch.content.trim().length > 0);
+  if (!hasContent) {
+    throw new AppError(
+      "NO_CONTENT",
+      "This book has no readable content available for download",
+      400
+    );
+  }
+
+  // Create PDF document with optimized settings (no watermark, no footer)
   const doc = new PDFDocument({
     size: "A4",
     margins: {
       top: 50,
-      bottom: 60,
+      bottom: 50,
       left: 50,
       right: 50,
     },
-    bufferPages: true,
     autoFirstPage: false,
     info: {
       Title: book.title,
@@ -449,16 +391,7 @@ export const generateWatermarkedPDF = async (bookId, userEmail) => {
     addChapter(doc, chapter);
   });
 
-  // Add page numbers and watermarks to all pages using buffering
-  const range = doc.bufferedPageRange();
-  for (let i = 0; i < range.count; i++) {
-    doc.switchToPage(i);
-    const pageNumber = i + 1;
-    addPageNumber(doc, pageNumber, book.title);
-    addWatermark(doc, userEmail);
-  }
-
-  // Finalize PDF
+  // Finalize PDF (no watermark, no footer, clean PDF)
   doc.end();
 
   // Generate filename

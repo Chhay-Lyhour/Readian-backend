@@ -72,14 +72,8 @@ Successfully implemented a comprehensive PDF download feature that allows **prem
 - Book metadata (title, author, genre, tags, rating, reading time, status)
 - Table of contents with all chapters
 - All chapters with proper formatting
-- Page numbers on every page
-- Copyright notice
 - Download date
-
-✅ **Watermarking**
-- User email watermarked on PDF (semi-transparent, diagonal)
-- Prevents unauthorized sharing
-- Trackable downloads
+- Clean layout with no footers or watermarks
 
 ✅ **Download Tracking**
 - Complete download history per user
@@ -155,11 +149,10 @@ GET /api/author/downloads/analytics
 - ❌ Cannot download if book has `allowDownload: false` (except author)
 
 ### Security Features
-1. **Email Watermarking** - Every PDF contains user's email
-2. **IP Tracking** - All downloads logged with IP address
-3. **Rate Limiting** - Prevents abuse with daily limits
-4. **Access Verification** - Checks subscription status on every download
-5. **Auto-Expiry Handling** - Expired subscriptions automatically blocked
+1. **IP Tracking** - All downloads logged with IP address
+2. **Rate Limiting** - Prevents abuse with daily limits
+3. **Access Verification** - Checks subscription status on every download
+4. **Auto-Expiry Handling** - Expired subscriptions automatically blocked
 
 ---
 
@@ -186,15 +179,7 @@ Generated PDFs include:
    - Full chapter content
    - Justified text alignment
    - Proper spacing
-
-4. **Footer (Every Page)**
-   - Page numbers (Page X of Y)
-   - Copyright notice
-   - License information
-
-5. **Watermark**
-   - User email (diagonal, semi-transparent)
-   - Visible on every page for tracking
+   - Clean layout without footers or watermarks
 
 ---
 
@@ -277,8 +262,8 @@ Generated PDFs include:
    - [ ] Title page displays correctly
    - [ ] Table of contents accurate
    - [ ] All chapters included
-   - [ ] Page numbers on every page
-   - [ ] Watermark visible but not intrusive
+   - [ ] Clean layout without footers or watermarks
+   - [ ] Professional formatting throughout
 
 5. **Analytics**
    - [ ] Download history shows correctly
@@ -302,7 +287,7 @@ GET http://localhost:5001/api/books/:bookId/download
 Headers:
   Authorization: Bearer <premium_user_token>
 
-Expected: PDF file download
+Expected: Clean PDF file download (no footers, no watermarks)
 ```
 
 ### Test 2: Download Own Book (Author)

@@ -39,7 +39,7 @@ export const downloadBook = async (req, res, next) => {
       );
     }
 
-    // Get user details for watermarking
+    // Get user details
     const user = await User.findById(userId).select("email name plan");
 
     // Authors can always download their own books, skip other checks
@@ -64,7 +64,7 @@ export const downloadBook = async (req, res, next) => {
       }
     }
 
-    // Generate PDF with watermark
+    // Generate clean PDF (no watermark, no footer)
     const { stream, filename } = await generateWatermarkedPDF(
       bookId,
       user.email
