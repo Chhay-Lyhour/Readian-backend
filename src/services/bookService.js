@@ -55,10 +55,18 @@ export async function createBook(bookData, authorId, file) {
  * @param {object} options - Pagination options.
  * @param {number} options.page - The current page.
  * @param {number} options.limit - The number of items per page.
+ * @param {object} options.user - The logged-in user (optional, from softAuth).
  */
-export async function getAllBooks({ page, limit }) {
+export async function getAllBooks({ page, limit, user }) {
   const skip = (page - 1) * limit;
   const query = { status: "published" };
+
+  // Apply age-based content filtering
+  if (!user || !user.age || user.age < 18) {
+    query.contentType = "kids"; // Only show kids content
+  }
+  // If user is 18+, show all content (no additional filter)
+
   const [books, totalItems] = await Promise.all([
     BookModel.find(query).sort({ createdAt: 1 }).skip(skip).limit(limit).lean(),
     BookModel.countDocuments(query),
@@ -249,11 +257,18 @@ export const getBookById = async (
 export async function searchAndFilterBooks(
   searchCriteria,
   userPlan,
-  { page, limit }
+  { page, limit },
+  user
 ) {
   const { title, author, genre, tags, sortByLikes } = searchCriteria;
   const query = { status: "published" };
   const sortOption = {};
+
+  // Apply age-based content filtering
+  if (!user || !user.age || user.age < 18) {
+    query.contentType = "kids"; // Only show kids content
+  }
+  // If user is 18+, show all content (no additional filter)
 
   if (title) {
     query.title = { $regex: title, $options: "i" };

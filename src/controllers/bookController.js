@@ -4,7 +4,8 @@ import { sendSuccessResponse } from "../utils/responseHandler.js";
 export async function getAllBooks(req, res, next) {
   try {
     const { page, limit } = req.query;
-    const result = await bookService.getAllBooks({ page, limit });
+    const user = req.user || undefined;
+    const result = await bookService.getAllBooks({ page, limit, user });
     sendSuccessResponse(res, result, "Books retrieved successfully.");
   } catch (error) {
     next(error);
@@ -94,11 +95,13 @@ export async function updateBookStatus(req, res, next) {
 export async function searchBooks(req, res, next) {
   try {
     const { page, limit, ...searchCriteria } = req.query;
-    const userPlan = req.user ? req.user.plan : "free";
+    const user = req.user || undefined;
+    const userPlan = user ? user.plan : "free";
     const result = await bookService.searchAndFilterBooks(
       searchCriteria,
       userPlan,
-      { page, limit }
+      { page, limit },
+      user
     );
     sendSuccessResponse(res, result, "Books retrieved successfully.");
   } catch (error) {

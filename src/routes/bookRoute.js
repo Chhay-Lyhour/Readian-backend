@@ -25,6 +25,7 @@ import {
   reorderChaptersSchema,
 } from "../dto/chapterValidationSchemas.js";
 import * as likeController from "../controllers/likeController.js";
+import { checkAgeRestriction } from "../middlewares/ageRestrictionMiddleware.js";
 
 const router = Router();
 
@@ -32,6 +33,7 @@ const router = Router();
 // Anyone can get a list of all books.
 router.get(
   "/",
+  softAuth,
   validateRequestQuery(paginationQuerySchema),
   controller.getAllBooks
 );
@@ -47,10 +49,11 @@ router.get(
 // --- "Soft" Authenticated Route ---
 // This route now uses `softAuth`. If a user is logged in, their details are
 // attached to the request. If not, the request proceeds as anonymous.
-// The service layer will handle the subscription check.
+// The service layer will handle the subscription check and age restriction.
 router.get(
   "/:id",
   softAuth,
+  checkAgeRestriction,
   validateRequestQuery(chapterPaginationQuerySchema),
   controller.getBookById
 );
@@ -105,14 +108,15 @@ router.patch(
 );
 
 // --- Like/Unlike Routes ---
-router.post("/:id/like", requireAuth, likeController.likeBook);
-router.post("/:id/unlike", requireAuth, likeController.unlikeBook);
+router.post("/:id/like", requireAuth, checkAgeRestriction, likeController.likeBook);
+router.post("/:id/unlike", requireAuth, checkAgeRestriction, likeController.unlikeBook);
 
 // --- Chapter Routes ---
 // Get all chapters for a book
 router.get(
   "/:id/chapters",
   softAuth,
+  checkAgeRestriction,
   validateRequestQuery(chapterPaginationQuerySchema),
   controller.getBookChapters
 );
@@ -121,6 +125,7 @@ router.get(
 router.get(
   "/:id/chapters/:chapterNumber",
   softAuth,
+  checkAgeRestriction,
   controller.getChapterByNumber
 );
 

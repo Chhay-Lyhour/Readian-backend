@@ -81,6 +81,12 @@ const bookSchema = new Schema(
       type: Boolean,
       default: true,
     },
+    contentType: {
+      type: String,
+      enum: ["kids", "adult"],
+      default: "kids",
+      required: true,
+    },
   },
   {
     timestamps: true,

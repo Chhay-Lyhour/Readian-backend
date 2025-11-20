@@ -7,6 +7,7 @@ import {
 } from "../controllers/downloadController.js";
 import { requireAuth } from "../middlewares/authMiddleware.js";
 import { verifyPremiumSubscription } from "../middlewares/subscriptionMiddleware.js";
+import { checkAgeRestriction } from "../middlewares/ageRestrictionMiddleware.js";
 import BookModel from "../models/bookModel.js";
 import { AppError } from "../utils/errorHandler.js";
 
@@ -45,6 +46,12 @@ const verifyDownloadPermission = async (req, res, next) => {
 router.get(
   "/books/:bookId/download",
   requireAuth,
+  (req, res, next) => {
+    // Map bookId to id for age restriction middleware
+    req.params.id = req.params.bookId;
+    next();
+  },
+  checkAgeRestriction,
   verifyDownloadPermission,
   downloadBook
 );

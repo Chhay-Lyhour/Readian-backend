@@ -13,6 +13,7 @@ export const createBookSchema = z.object({
   isPublished: z.boolean().optional(),
   isPremium: z.boolean().optional(),
   publishedDate: z.coerce.date().optional(),
+  contentType: z.enum(["kids", "adult"]).default("kids"),
   chapters: z
     .array(
       z.object({
@@ -34,6 +35,7 @@ export const updateBookSchema = z.object({
   bookStatus: z.enum(["ongoing", "finished"]).optional(),
   isPremium: z.boolean().optional(),
   publishedDate: z.coerce.date().optional(),
+  contentType: z.enum(["kids", "adult"]).optional(),
   chapters: z
     .array(
       z.object({

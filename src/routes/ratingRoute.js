@@ -6,6 +6,7 @@ import {
   getBookRatings,
 } from "../controllers/ratingController.js";
 import { requireAuth } from "../middlewares/authMiddleware.js";
+import { checkAgeRestriction } from "../middlewares/ageRestrictionMiddleware.js";
 
 const router = express.Router();
 
@@ -14,21 +15,30 @@ const router = express.Router();
  * @desc Rate a book (1-5 stars)
  * @access Private
  */
-router.post("/:bookId/rate", requireAuth, rateBook);
+router.post("/:bookId/rate", requireAuth, (req, res, next) => {
+  req.params.id = req.params.bookId;
+  next();
+}, checkAgeRestriction, rateBook);
 
 /**
  * @route GET /api/books/:bookId/rating/me
  * @desc Get current user's rating for a book
  * @access Private
  */
-router.get("/:bookId/rating/me", requireAuth, getMyRating);
+router.get("/:bookId/rating/me", requireAuth, (req, res, next) => {
+  req.params.id = req.params.bookId;
+  next();
+}, checkAgeRestriction, getMyRating);
 
 /**
  * @route DELETE /api/books/:bookId/rate
  * @desc Delete user's rating for a book
  * @access Private
  */
-router.delete("/:bookId/rate", requireAuth, deleteRating);
+router.delete("/:bookId/rate", requireAuth, (req, res, next) => {
+  req.params.id = req.params.bookId;
+  next();
+}, checkAgeRestriction, deleteRating);
 
 /**
  * @route GET /api/books/:bookId/ratings
