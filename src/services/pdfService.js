@@ -239,7 +239,7 @@ function addTableOfContents(doc, chapters) {
       .fillColor("#000000")
       .moveDown(0.6);
 
-    // Add a subtle separator line after every 6 chapters for readability
+    // Add a subtle separator line after every 10 chapters for readability
     if ((index + 1) % 10 === 0 && index < chapters.length - 1) {
       doc.moveDown(0.3);
       const lineY = doc.y;
@@ -299,7 +299,7 @@ function addChapter(doc, chapter) {
     .font("Helvetica")
     .fillColor("#000000")
     .text(chapter.content, {
-      align: "justify",
+//      align: "justify",
       lineGap: 4,
       paragraphGap: 8,
       indent: 0,
