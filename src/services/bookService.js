@@ -199,16 +199,22 @@ export const getBookById = async (
       throw new AppError("USER_NOT_FOUND");
     }
 
-    // Check and handle expired subscriptions (auto-downgrade to free)
-    await checkAndHandleExpiredSubscription(dbUser);
+    // Allow the author to view their own premium book and admins to view all
+    const isBookAuthor = book.author.toString() === tokenUser.id;
+    const isAdmin = tokenUser.role === "ADMIN";
 
-    const isSubscriptionActive =
-      dbUser.subscriptionStatus === "active" &&
-      dbUser.subscriptionExpiresAt &&
-      new Date() < new Date(dbUser.subscriptionExpiresAt);
+    if (!isBookAuthor && !isAdmin) {
+      // Check and handle expired subscriptions (auto-downgrade to free)
+      await checkAndHandleExpiredSubscription(dbUser);
 
-    if (!isSubscriptionActive) {
-      throw new AppError("SUBSCRIPTION_REQUIRED");
+      const isSubscriptionActive =
+        dbUser.subscriptionStatus === "active" &&
+        dbUser.subscriptionExpiresAt &&
+        new Date() < new Date(dbUser.subscriptionExpiresAt);
+
+      if (!isSubscriptionActive) {
+        throw new AppError("SUBSCRIPTION_REQUIRED");
+      }
     }
   }
 
@@ -497,16 +503,22 @@ export async function getBookChapters(bookId, tokenUser, { chapterPage = 1, chap
       throw new AppError("USER_NOT_FOUND");
     }
 
-    // Check and handle expired subscriptions (auto-downgrade to free)
-    await checkAndHandleExpiredSubscription(dbUser);
+    // Allow the author to view their own premium book and admins to view all
+    const isBookAuthor = book.author.toString() === tokenUser.id;
+    const isAdmin = tokenUser.role === "ADMIN";
 
-    const isSubscriptionActive =
-      dbUser.subscriptionStatus === "active" &&
-      dbUser.subscriptionExpiresAt &&
-      new Date() < new Date(dbUser.subscriptionExpiresAt);
+    if (!isBookAuthor && !isAdmin) {
+      // Check and handle expired subscriptions (auto-downgrade to free)
+      await checkAndHandleExpiredSubscription(dbUser);
 
-    if (!isSubscriptionActive) {
-      throw new AppError("SUBSCRIPTION_REQUIRED");
+      const isSubscriptionActive =
+        dbUser.subscriptionStatus === "active" &&
+        dbUser.subscriptionExpiresAt &&
+        new Date() < new Date(dbUser.subscriptionExpiresAt);
+
+      if (!isSubscriptionActive) {
+        throw new AppError("SUBSCRIPTION_REQUIRED");
+      }
     }
   }
 
@@ -572,16 +584,22 @@ export async function getChapterByNumber(bookId, chapterNumber, tokenUser) {
       throw new AppError("USER_NOT_FOUND");
     }
 
-    // Check and handle expired subscriptions (auto-downgrade to free)
-    await checkAndHandleExpiredSubscription(dbUser);
+    // Allow the author to view their own premium book and admins to view all
+    const isBookAuthor = book.author.toString() === tokenUser.id;
+    const isAdmin = tokenUser.role === "ADMIN";
 
-    const isSubscriptionActive =
-      dbUser.subscriptionStatus === "active" &&
-      dbUser.subscriptionExpiresAt &&
-      new Date() < new Date(dbUser.subscriptionExpiresAt);
+    if (!isBookAuthor && !isAdmin) {
+      // Check and handle expired subscriptions (auto-downgrade to free)
+      await checkAndHandleExpiredSubscription(dbUser);
 
-    if (!isSubscriptionActive) {
-      throw new AppError("SUBSCRIPTION_REQUIRED");
+      const isSubscriptionActive =
+        dbUser.subscriptionStatus === "active" &&
+        dbUser.subscriptionExpiresAt &&
+        new Date() < new Date(dbUser.subscriptionExpiresAt);
+
+      if (!isSubscriptionActive) {
+        throw new AppError("SUBSCRIPTION_REQUIRED");
+      }
     }
   }
 
