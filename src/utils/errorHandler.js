@@ -57,13 +57,45 @@ const ERROR_MAP = {
     statusCode: 400,
     message: "You have not liked this book.",
   },
+  CHAPTER_NOT_FOUND: {
+    statusCode: 404,
+    message: "Chapter not found.",
+  },
+  SUBSCRIPTION_REQUIRED: {
+    statusCode: 403,
+    message: "This content requires an active subscription.",
+  },
+  PREMIUM_FEATURE_ONLY: {
+    statusCode: 403,
+    message: "This feature is only available to premium users.",
+  },
+  FILE_NOT_PROVIDED: {
+    statusCode: 400,
+    message: "No file was provided.",
+  },
+  INVALID_FILE_TYPE: {
+    statusCode: 400,
+    message: "Invalid file type. Only images are allowed.",
+  },
+  FILE_TOO_LARGE: {
+    statusCode: 400,
+    message: "File size is too large. Maximum size is 5MB.",
+  },
+  FILE_UPLOAD_ERROR: {
+    statusCode: 500,
+    message: "An error occurred while uploading the file.",
+  },
+  CLOUDINARY_NOT_CONFIGURED: {
+    statusCode: 500,
+    message: "Cloud storage is not configured. Please contact support.",
+  },
 };
 
 class AppError extends Error {
   constructor(code, message, statusCode) {
-    super(message || ERROR_MAP[code].message);
+    super(message || ERROR_MAP[code]?.message || "An error occurred");
     this.code = code;
-    this.statusCode = statusCode || ERROR_MAP[code].statusCode;
+    this.statusCode = statusCode || ERROR_MAP[code]?.statusCode || 500;
     Error.captureStackTrace(this, this.constructor);
   }
 }

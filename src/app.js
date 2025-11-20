@@ -1,5 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 import bookRouter from "./routes/bookRoute.js";
 import authRouter from "./routes/authRoute.js";
 import { userRouter } from "./routes/userRoute.js";
@@ -22,10 +24,21 @@ const app = express();
 configureCloudinary();
 
 // Global Middlewares
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow images to be loaded
+}));
 app.use(cors({ origin: config.frontendUrl, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Setup static file serving
+import("./config/staticFiles.js")
+  .then(({ setupStaticFileServing }) => {
+    setupStaticFileServing(app);
+  })
+  .catch((err) => {
+    console.warn("Could not setup static file serving:", err.message);
+  });
 
 // Routes
 app.use("/api/books", bookRouter);

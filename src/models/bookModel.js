@@ -24,6 +24,11 @@ const bookSchema = new Schema(
       enum: ["draft", "published"],
       default: "draft",
     },
+    bookStatus: {
+      type: String,
+      enum: ["ongoing", "finished"],
+      default: "ongoing",
+    },
     isPremium: Boolean,
     publishedDate: Date,
     viewCount: {

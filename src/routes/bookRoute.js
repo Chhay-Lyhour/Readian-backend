@@ -1,5 +1,6 @@
 import { Router } from "express";
 import * as controller from "../controllers/bookController.js";
+import * as chapterController from "../controllers/chapterController.js";
 import {
   requireAuth,
   requireRole,
@@ -16,7 +17,13 @@ import {
   searchBookSchema,
   paginationQuerySchema,
   chapterPaginationQuerySchema,
+  updateBookStatusSchema,
 } from "../dto/bookValidationSchemas.js";
+import {
+  addChapterSchema,
+  updateChapterSchema,
+  reorderChaptersSchema,
+} from "../dto/chapterValidationSchemas.js";
 import * as likeController from "../controllers/likeController.js";
 
 const router = Router();
@@ -82,8 +89,75 @@ router.post(
   controller.publishBook
 );
 
+router.post(
+  "/:id/toggle-premium",
+  requireAuth,
+  requireRole(["AUTHOR", "ADMIN"]),
+  controller.togglePremium
+);
+
+router.patch(
+  "/:id/status",
+  requireAuth,
+  requireRole(["AUTHOR", "ADMIN"]),
+  validateRequestBody(updateBookStatusSchema),
+  controller.updateBookStatus
+);
+
 // --- Like/Unlike Routes ---
 router.post("/:id/like", requireAuth, likeController.likeBook);
 router.post("/:id/unlike", requireAuth, likeController.unlikeBook);
+
+// --- Chapter Routes ---
+// Get all chapters for a book
+router.get(
+  "/:id/chapters",
+  softAuth,
+  validateRequestQuery(chapterPaginationQuerySchema),
+  controller.getBookChapters
+);
+
+// Get a specific chapter by chapter number
+router.get(
+  "/:id/chapters/:chapterNumber",
+  softAuth,
+  controller.getChapterByNumber
+);
+
+// --- Chapter Management Routes (AUTHOR or ADMIN only) ---
+// Add a new chapter to a book
+router.post(
+  "/:bookId/chapters",
+  requireAuth,
+  requireRole(["AUTHOR", "ADMIN"]),
+  validateRequestBody(addChapterSchema),
+  chapterController.addChapter
+);
+
+// Update a specific chapter
+router.patch(
+  "/:bookId/chapters/:chapterNumber",
+  requireAuth,
+  requireRole(["AUTHOR", "ADMIN"]),
+  validateRequestBody(updateChapterSchema),
+  chapterController.updateChapter
+);
+
+// Delete a specific chapter
+router.delete(
+  "/:bookId/chapters/:chapterNumber",
+  requireAuth,
+  requireRole(["AUTHOR", "ADMIN"]),
+  chapterController.deleteChapter
+);
+
+// Reorder chapters
+router.post(
+  "/:bookId/chapters/reorder",
+  requireAuth,
+  requireRole(["AUTHOR", "ADMIN"]),
+  validateRequestBody(reorderChaptersSchema),
+  chapterController.reorderChapters
+);
 
 export default router;

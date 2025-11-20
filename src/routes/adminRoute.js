@@ -10,4 +10,7 @@ router.use(requireAuth, requireRole(["ADMIN"]));
 // GET /api/admin/analytics
 router.get("/analytics", controller.getAnalytics);
 
+// DELETE /api/admin/books/:id - Admin can delete any book
+router.delete("/books/:id", controller.deleteBookByAdmin);
+
 export default router;

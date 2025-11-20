@@ -12,10 +12,15 @@ export async function findAllUsers() {
 /**
  * Finds a single user by their ID, excluding the password.
  * @param {string} userId - The ID of the user to find.
+ * @param {string|object} [populate] - Optional field(s) to populate.
  * @returns {Promise<User|null>}
  */
-export async function findUserById(userId) {
-  return User.findById(userId).select("-password");
+export async function findUserById(userId, populate = null) {
+  const query = User.findById(userId).select("-password");
+  if (populate) {
+    query.populate(populate);
+  }
+  return query;
 }
 
 /**

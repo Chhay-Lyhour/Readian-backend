@@ -9,7 +9,8 @@ export async function getPublicAnalytics() {
     BookModel.find({ status: "published" })
       .sort({ viewCount: -1 })
       .limit(5)
-      .select("title viewCount author"),
+      .select("title viewCount likes author image genre isPremium publishedDate")
+      .populate("author", "name avatar email"),
 
     // Aggregation for top 5 authors
     BookModel.aggregate([
@@ -18,6 +19,7 @@ export async function getPublicAnalytics() {
         $group: {
           _id: "$author",
           totalViews: { $sum: "$viewCount" },
+          totalLikes: { $sum: "$likes" },
           bookCount: { $sum: 1 },
         },
       },
@@ -36,7 +38,10 @@ export async function getPublicAnalytics() {
           _id: 0,
           authorId: "$_id",
           authorName: { $arrayElemAt: ["$authorDetails.name", 0] },
+          authorEmail: { $arrayElemAt: ["$authorDetails.email", 0] },
+          authorAvatar: { $arrayElemAt: ["$authorDetails.avatar", 0] },
           totalViews: 1,
+          totalLikes: 1,
           bookCount: 1,
         },
       },

@@ -17,7 +17,7 @@
   "main": "server.js",
   "scripts": {
     "dev": "nodemon src/server.js",
-    "test": "cross-env NODE_ENV=test jest --testTimeout=5000 --detectOpenHandles"
+    "start": "node src/server.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -37,15 +37,9 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
-    "@babel/core": "^7.28.5",
-    "@babel/preset-env": "^7.28.5",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/node": "^24.6.2",
-    "babel-jest": "^30.2.0",
-    "cross-env": "^10.1.0",
-    "jest": "^30.2.0",
-    "nodemon": "^3.1.10",
-    "supertest": "^7.1.4"
+    "nodemon": "^3.1.10"
   }
 }

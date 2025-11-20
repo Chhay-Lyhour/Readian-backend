@@ -1,9 +1,10 @@
 import { Router } from "express";
 import * as controller from "../controllers/userController.js";
 import { requireAuth, requireRole } from "../middlewares/authMiddleware.js";
-import { validateRequestBody } from "../middlewares/requestValidatorMiddleware.js";
+import { validateRequestBody, validateRequestQuery } from "../middlewares/requestValidatorMiddleware.js";
 import * as schemas from "../dto/userValidationSchemas.js";
 import { uploadSingleImage } from "../middlewares/uploadMiddleware.js";
+import { paginationQuerySchema } from "../dto/bookValidationSchemas.js";
 
 export const userRouter = Router();
 
@@ -24,24 +25,34 @@ userRouter.patch(
   controller.updateProfileImage
 );
 
+// A user can update their own cover image
+userRouter.patch(
+  "/me/cover-image",
+  uploadSingleImage("coverImage"),
+  controller.updateCoverImage
+);
+
 // A logged-in user (who is a BUYER) can upgrade their role to AUTHOR
 userRouter.post("/me/become-author", controller.becomeAuthor);
 
 userRouter.get(
   "/me/books",
-  requireAuth,
   requireRole(["AUTHOR", "ADMIN"]),
+  validateRequestQuery(paginationQuerySchema),
   controller.getMyBooks
 );
 
 userRouter.get(
   "/me/author-stats",
-  requireAuth,
   requireRole(["AUTHOR", "ADMIN"]),
   controller.getAuthorStats
 );
 
-userRouter.get("/me/liked-books", requireAuth, controller.getLikedBooks);
+userRouter.get(
+  "/me/liked-books",
+  validateRequestQuery(paginationQuerySchema),
+  controller.getLikedBooks
+);
 
 // A user can change their own password
 userRouter.post(

@@ -60,15 +60,28 @@ export async function getAllBooks({ page, limit }) {
   const skip = (page - 1) * limit;
   const query = { status: "published" };
   const [books, totalItems] = await Promise.all([
-    BookModel.find(query).sort({ createdAt: 1 }).skip(skip).limit(limit),
+    BookModel.find(query).sort({ createdAt: 1 }).skip(skip).limit(limit).lean(),
     BookModel.countDocuments(query),
   ]);
 
+  // Add total chapters count for each book
+  const booksWithChapterCount = await Promise.all(
+    books.map(async (book) => {
+      const totalChapters = await ChapterModel.countDocuments({ book: book._id });
+      return { ...book, totalChapters };
+    })
+  );
+
+  const totalPages = Math.ceil(totalItems / limit);
+
   return {
-    books,
-    totalPages: Math.ceil(totalItems / limit),
-    currentPage: page,
-    totalItems,
+    books: booksWithChapterCount,
+    pagination: {
+      currentPage: page,
+      totalPages: totalPages,
+      totalBooks: totalItems,
+      hasMore: page < totalPages
+    }
   };
 }
 
@@ -94,7 +107,15 @@ export async function getBooksByAuthor(authorId, options = {}) {
 
   // If no pagination provided, return all books (backward compatibility)
   if (!page && !limit) {
-    return BookModel.find(query).sort({ createdAt: -1 });
+    const books = await BookModel.find(query).sort({ createdAt: -1 }).lean();
+    // Add chapter count to each book
+    const booksWithChapterCount = await Promise.all(
+      books.map(async (book) => {
+        const totalChapters = await ChapterModel.countDocuments({ book: book._id });
+        return { ...book, totalChapters };
+      })
+    );
+    return booksWithChapterCount;
   }
 
   // Calculate pagination
@@ -107,15 +128,29 @@ export async function getBooksByAuthor(authorId, options = {}) {
     BookModel.find(query)
       .sort({ createdAt: -1 }) // Most recent first
       .skip(skip)
-      .limit(limitNum),
+      .limit(limitNum)
+      .lean(),
     BookModel.countDocuments(query),
   ]);
 
+  // Add chapter count to each book
+  const booksWithChapterCount = await Promise.all(
+    books.map(async (book) => {
+      const totalChapters = await ChapterModel.countDocuments({ book: book._id });
+      return { ...book, totalChapters };
+    })
+  );
+
+  const totalPages = Math.ceil(totalItems / limitNum);
+
   return {
-    books,
-    totalPages: Math.ceil(totalItems / limitNum),
-    currentPage: pageNum,
-    totalItems,
+    books: booksWithChapterCount,
+    pagination: {
+      currentPage: pageNum,
+      totalPages: totalPages,
+      totalBooks: totalItems,
+      hasMore: pageNum < totalPages
+    }
   };
 }
 
@@ -249,11 +284,15 @@ export async function searchAndFilterBooks(
     BookModel.countDocuments(query),
   ]);
 
+  const totalPages = Math.ceil(totalItems / limit);
   return {
     books,
-    totalPages: Math.ceil(totalItems / limit),
-    currentPage: page,
-    totalItems,
+    pagination: {
+      currentPage: page,
+      totalPages: totalPages,
+      totalBooks: totalItems,
+      hasMore: page < totalPages
+    }
   };
 }
 
@@ -275,7 +314,7 @@ export async function updateBookById(bookId, updateData, authorId, file) {
   }
 
   if (file) {
-    const imageUrl = await uploadFromBuffer(file.buffer, "book_covers");
+    const imageUrl = await uploadFromBuffer(file.buffer, "book_covers", file.originalname);
     updateData.image = imageUrl;
   }
 
@@ -370,4 +409,202 @@ export async function publishBook(bookId, authorId) {
   await book.save();
 
   return book;
+}
+
+/**
+ * Toggles the premium status of a book.
+ * @param {string} bookId - The ID of the book.
+ * @param {string} authorId - The ID of the author attempting to toggle.
+ */
+export async function togglePremiumStatus(bookId, authorId) {
+  const book = await BookModel.findById(bookId);
+  if (!book) throw new AppError("BOOK_NOT_FOUND");
+
+  if (book.author.toString() !== authorId) {
+    throw new AppError("INSUFFICIENT_PERMISSIONS");
+  }
+
+  // Toggle the premium status
+  book.isPremium = !book.isPremium;
+  await book.save();
+
+  return book;
+}
+
+/**
+ * Updates the book status (ongoing/finished).
+ * @param {string} bookId - The ID of the book.
+ * @param {string} bookStatus - The new status ('ongoing' or 'finished').
+ * @param {string} authorId - The ID of the author attempting to update.
+ */
+export async function updateBookStatus(bookId, bookStatus, authorId) {
+  const book = await BookModel.findById(bookId);
+  if (!book) throw new AppError("BOOK_NOT_FOUND");
+
+  if (book.author.toString() !== authorId) {
+    throw new AppError("INSUFFICIENT_PERMISSIONS");
+  }
+
+  // Validate bookStatus
+  if (!["ongoing", "finished"].includes(bookStatus)) {
+    throw new AppError(
+      "INVALID_BOOK_STATUS",
+      "Book status must be 'ongoing' or 'finished'."
+    );
+  }
+
+  book.bookStatus = bookStatus;
+  await book.save();
+
+  return book;
+}
+
+/**
+ * Retrieves all chapters for a book with pagination.
+ * Enforces subscription check for premium books.
+ * @param {string} bookId - The ID of the book.
+ * @param {object} [tokenUser] - The authenticated user object from the JWT (optional).
+ * @param {object} options - Pagination options.
+ */
+export async function getBookChapters(bookId, tokenUser, { chapterPage = 1, chapterLimit = 10 }) {
+  // Step 1: Find the book first.
+  const book = await BookModel.findById(bookId).lean();
+
+  // Step 2: If no book is found, exit immediately.
+  if (!book) {
+    throw new AppError("BOOK_NOT_FOUND");
+  }
+
+  // --- DRAFT VISIBILITY CHECK ---
+  // Step 3: If the book is a draft, only its author or an admin can see it.
+  if (book.status === "draft") {
+    const isAuthor = tokenUser && book.author.toString() === tokenUser.id;
+    const isAdmin = tokenUser && tokenUser.role === "ADMIN";
+
+    if (!isAuthor && !isAdmin) {
+      throw new AppError("BOOK_NOT_FOUND");
+    }
+  }
+
+  // --- PREMIUM CONTENT CHECK ---
+  if (book.isPremium) {
+    if (!tokenUser || !tokenUser.id) {
+      throw new AppError("SUBSCRIPTION_REQUIRED");
+    }
+
+    const dbUser = await User.findById(tokenUser.id);
+    if (!dbUser) {
+      throw new AppError("USER_NOT_FOUND");
+    }
+
+    // Check and handle expired subscriptions (auto-downgrade to free)
+    await checkAndHandleExpiredSubscription(dbUser);
+
+    const isSubscriptionActive =
+      dbUser.subscriptionStatus === "active" &&
+      dbUser.subscriptionExpiresAt &&
+      new Date() < new Date(dbUser.subscriptionExpiresAt);
+
+    if (!isSubscriptionActive) {
+      throw new AppError("SUBSCRIPTION_REQUIRED");
+    }
+  }
+
+  // --- FETCH CHAPTERS ---
+  const skip = (chapterPage - 1) * chapterLimit;
+
+  const [chapters, totalChapters] = await Promise.all([
+    ChapterModel.find({ book: bookId })
+      .sort({ chapterNumber: 1 })
+      .skip(skip)
+      .limit(chapterLimit)
+      .lean(),
+    ChapterModel.countDocuments({ book: bookId }),
+  ]);
+
+  return {
+    bookId: book._id,
+    bookTitle: book.title,
+    chapters,
+    pagination: {
+      totalPages: Math.ceil(totalChapters / chapterLimit),
+      currentPage: chapterPage,
+      totalChapters,
+    },
+  };
+}
+
+/**
+ * Retrieves a specific chapter by its chapter number.
+ * Enforces subscription check for premium books.
+ * @param {string} bookId - The ID of the book.
+ * @param {number} chapterNumber - The chapter number to retrieve.
+ * @param {object} [tokenUser] - The authenticated user object from the JWT (optional).
+ */
+export async function getChapterByNumber(bookId, chapterNumber, tokenUser) {
+  // Step 1: Find the book first.
+  const book = await BookModel.findById(bookId).lean();
+
+  // Step 2: If no book is found, exit immediately.
+  if (!book) {
+    throw new AppError("BOOK_NOT_FOUND");
+  }
+
+  // --- DRAFT VISIBILITY CHECK ---
+  // Step 3: If the book is a draft, only its author or an admin can see it.
+  if (book.status === "draft") {
+    const isAuthor = tokenUser && book.author.toString() === tokenUser.id;
+    const isAdmin = tokenUser && tokenUser.role === "ADMIN";
+
+    if (!isAuthor && !isAdmin) {
+      throw new AppError("BOOK_NOT_FOUND");
+    }
+  }
+
+  // --- PREMIUM CONTENT CHECK ---
+  if (book.isPremium) {
+    if (!tokenUser || !tokenUser.id) {
+      throw new AppError("SUBSCRIPTION_REQUIRED");
+    }
+
+    const dbUser = await User.findById(tokenUser.id);
+    if (!dbUser) {
+      throw new AppError("USER_NOT_FOUND");
+    }
+
+    // Check and handle expired subscriptions (auto-downgrade to free)
+    await checkAndHandleExpiredSubscription(dbUser);
+
+    const isSubscriptionActive =
+      dbUser.subscriptionStatus === "active" &&
+      dbUser.subscriptionExpiresAt &&
+      new Date() < new Date(dbUser.subscriptionExpiresAt);
+
+    if (!isSubscriptionActive) {
+      throw new AppError("SUBSCRIPTION_REQUIRED");
+    }
+  }
+
+  // --- FETCH SPECIFIC CHAPTER ---
+  const chapter = await ChapterModel.findOne({
+    book: bookId,
+    chapterNumber: chapterNumber,
+  }).lean();
+
+  if (!chapter) {
+    throw new AppError("CHAPTER_NOT_FOUND", "Chapter not found.");
+  }
+
+  // Get total chapter count for navigation
+  const totalChapters = await ChapterModel.countDocuments({ book: bookId });
+
+  return {
+    ...chapter,
+    bookTitle: book.title,
+    navigation: {
+      hasNext: chapterNumber < totalChapters,
+      hasPrevious: chapterNumber > 1,
+      totalChapters,
+    },
+  };
 }

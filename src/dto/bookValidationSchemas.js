@@ -31,6 +31,7 @@ export const updateBookSchema = z.object({
   rating: z.number().min(0).max(5).optional(),
   image: z.string().optional(),
   status: z.enum(["draft", "published"]).optional(),
+  bookStatus: z.enum(["ongoing", "finished"]).optional(),
   isPremium: z.boolean().optional(),
   publishedDate: z.coerce.date().optional(),
   chapters: z
@@ -63,3 +64,10 @@ export const searchBookSchema = z
     sortByLikes: z.enum(["asc", "desc"]).optional(),
   })
   .merge(paginationQuerySchema);
+
+export const updateBookStatusSchema = z.object({
+  bookStatus: z.enum(["ongoing", "finished"], {
+    required_error: "Book status is required",
+    invalid_type_error: "Book status must be 'ongoing' or 'finished'",
+  }),
+});

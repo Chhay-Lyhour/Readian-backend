@@ -32,6 +32,25 @@ export async function updateProfileImage(req, res, next) {
   }
 }
 
+export async function updateCoverImage(req, res, next) {
+  try {
+    if (!req.file) {
+      throw new AppError("FILE_NOT_PROVIDED", "No cover image file provided.");
+    }
+    const updatedUser = await userService.updateUserCoverImage(
+      req.user.id,
+      req.file
+    );
+    sendSuccessResponse(
+      res,
+      updatedUser,
+      "Cover image updated successfully."
+    );
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function getAllUsers(req, res, next) {
   try {
     const users = await userService.getAllUsers();
@@ -125,7 +144,8 @@ export async function getAuthorStats(req, res, next) {
 
 export async function getLikedBooks(req, res, next) {
   try {
-    const books = await userService.getLikedBooks(req.user.id);
+    const { page, limit } = req.query;
+    const books = await userService.getLikedBooks(req.user.id, { page, limit });
     sendSuccessResponse(res, books, "Liked books retrieved successfully.");
   } catch (error) {
     next(error);

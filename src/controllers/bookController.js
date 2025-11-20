@@ -66,6 +66,31 @@ export async function publishBook(req, res, next) {
   }
 }
 
+export async function togglePremium(req, res, next) {
+  try {
+    const book = await bookService.togglePremiumStatus(req.params.id, req.user.id);
+    const message = book.isPremium 
+      ? "Book marked as premium." 
+      : "Book marked as free.";
+    sendSuccessResponse(res, book, message);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateBookStatus(req, res, next) {
+  try {
+    const book = await bookService.updateBookStatus(
+      req.params.id, 
+      req.body.bookStatus, 
+      req.user.id
+    );
+    sendSuccessResponse(res, book, "Book status updated successfully.");
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function searchBooks(req, res, next) {
   try {
     const { page, limit, ...searchCriteria } = req.query;
@@ -76,6 +101,35 @@ export async function searchBooks(req, res, next) {
       { page, limit }
     );
     sendSuccessResponse(res, result, "Books retrieved successfully.");
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getBookChapters(req, res, next) {
+  try {
+    const tokenUser = req.user || undefined;
+    const { chapterPage, chapterLimit } = req.query;
+    const result = await bookService.getBookChapters(
+      req.params.id,
+      tokenUser,
+      { chapterPage, chapterLimit }
+    );
+    sendSuccessResponse(res, result, "Chapters retrieved successfully.");
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getChapterByNumber(req, res, next) {
+  try {
+    const tokenUser = req.user || undefined;
+    const chapter = await bookService.getChapterByNumber(
+      req.params.id,
+      parseInt(req.params.chapterNumber),
+      tokenUser
+    );
+    sendSuccessResponse(res, chapter, "Chapter retrieved successfully.");
   } catch (error) {
     next(error);
   }

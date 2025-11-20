@@ -12,3 +12,16 @@ export async function getAnalytics(req, res, next) {
     next(error);
   }
 }
+
+/**
+ * Controller for admin to delete any book (including all its chapters).
+ */
+export async function deleteBookByAdmin(req, res, next) {
+  try {
+    const result = await adminService.deleteBookByAdmin(req.params.id);
+    sendSuccessResponse(res, result, result.message);
+  } catch (error) {
+    next(error);
+  }
+}
+
