@@ -22,9 +22,11 @@ Readian is a book reading platform backend API that supports user authentication
 3. [Book Management](#book-management)
 4. [Chapter Management](#chapter-management)
 5. [Like/Unlike Books](#likeunlike-books)
-6. [Subscription Management](#subscription-management)
-7. [Analytics](#analytics)
-8. [Admin Endpoints](#admin-endpoints)
+6. [Book Rating System](#book-rating-system)
+7. [Subscription Management](#subscription-management)
+8. [Analytics](#analytics)
+9. [Admin Endpoints](#admin-endpoints)
+10. [Download Feature](#download-feature-premium-only)
 
 ---
 
@@ -503,7 +505,8 @@ Authorization: Bearer <accessToken>
         "author": "507f1f77bcf86cd799439011",
         "tags": "fiction, adventure",
         "genre": "Adventure",
-        "rating": 4.5,
+        "averageRating": 4.5,
+        "totalRatings": 23,
         "image": "http://localhost:5001/uploads/book_covers/book1.jpg",
         "status": "published",
         "bookStatus": "ongoing",
@@ -586,7 +589,8 @@ Authorization: Bearer <accessToken>
         },
         "genre": "Fantasy",
         "tags": "magic, adventure",
-        "rating": 4.8,
+        "averageRating": 4.8,
+        "totalRatings": 45,
         "image": "http://localhost:5001/uploads/book_covers/book.jpg",
         "isPremium": false,
         "likes": 150,
@@ -746,7 +750,8 @@ Authorization: Bearer <accessToken>
         "author": "author_id",
         "tags": "fiction, drama",
         "genre": "Drama",
-        "rating": 4.5,
+        "averageRating": 4.5,
+        "totalRatings": 32,
         "image": "http://localhost:5001/uploads/book_covers/book.jpg",
         "status": "published",
         "bookStatus": "ongoing",
@@ -796,7 +801,8 @@ Authorization: Bearer <accessToken>
         "author": "author_id",
         "genre": "Adventure",
         "tags": "action, adventure",
-        "rating": 4.7,
+        "averageRating": 4.7,
+        "totalRatings": 38,
         "image": "http://localhost:5001/uploads/book_covers/book.jpg",
         "status": "published",
         "isPremium": false,
@@ -1291,6 +1297,236 @@ Authorization: Bearer <accessToken>
 
 ---
 
+## Book Rating System
+
+### 1. Rate a Book
+**POST** `/books/:bookId/rate`
+
+**Description:** Rate a book from 1 to 5 stars. Only logged-in users can rate. Users can update their rating by submitting again.
+
+**Headers:**
+```
+Authorization: Bearer <accessToken>
+```
+
+**Request Body:**
+```json
+{
+  "rating": 4
+}
+```
+
+**Validation:**
+- Rating must be between 1 and 5 (inclusive)
+- Book must be published (cannot rate drafts)
+- User must be authenticated
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Rating added successfully",
+  "data": {
+    "averageRating": "4.3",
+    "totalRatings": 15,
+    "yourRating": 4
+  }
+}
+```
+
+**Response (200) - Update Existing Rating:**
+```json
+{
+  "success": true,
+  "message": "Rating updated successfully",
+  "data": {
+    "averageRating": "4.2",
+    "totalRatings": 15,
+    "yourRating": 3
+  }
+}
+```
+
+**Error Responses:**
+
+**400 - Invalid Rating:**
+```json
+{
+  "success": false,
+  "message": "Rating must be between 1 and 5",
+  "error": "INVALID_RATING"
+}
+```
+
+**400 - Book Not Published:**
+```json
+{
+  "success": false,
+  "message": "You can only rate published books",
+  "error": "BOOK_NOT_PUBLISHED"
+}
+```
+
+**404 - Book Not Found:**
+```json
+{
+  "success": false,
+  "message": "Book not found",
+  "error": "BOOK_NOT_FOUND"
+}
+```
+
+---
+
+### 2. Get My Rating
+**GET** `/books/:bookId/rating/me`
+
+**Description:** Get the current user's rating for a specific book
+
+**Headers:**
+```
+Authorization: Bearer <accessToken>
+```
+
+**Response (200) - User Has Rated:**
+```json
+{
+  "success": true,
+  "message": "Rating retrieved successfully",
+  "data": {
+    "rating": 4,
+    "ratedAt": "2025-11-20T10:30:00.000Z"
+  }
+}
+```
+
+**Response (200) - User Hasn't Rated:**
+```json
+{
+  "success": true,
+  "message": "You haven't rated this book yet",
+  "data": {
+    "rating": null,
+    "ratedAt": null
+  }
+}
+```
+
+---
+
+### 3. Delete My Rating
+**DELETE** `/books/:bookId/rate`
+
+**Description:** Remove your rating from a book
+
+**Headers:**
+```
+Authorization: Bearer <accessToken>
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Rating deleted successfully",
+  "data": {
+    "averageRating": "4.2",
+    "totalRatings": 14
+  }
+}
+```
+
+**Error Response:**
+
+**404 - Rating Not Found:**
+```json
+{
+  "success": false,
+  "message": "You haven't rated this book",
+  "error": "RATING_NOT_FOUND"
+}
+```
+
+---
+
+### 4. Get All Book Ratings
+**GET** `/books/:bookId/ratings?page=1&limit=10`
+
+**Description:** Get all ratings for a book with user details (public endpoint)
+
+**Query Parameters:**
+- `page` (number, optional) - Page number (default: 1)
+- `limit` (number, optional) - Items per page (default: 10)
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Book ratings retrieved successfully",
+  "data": {
+    "bookTitle": "The Great Adventure",
+    "averageRating": 4.3,
+    "totalRatings": 15,
+    "ratings": [
+      {
+        "user": {
+          "id": "user_id_1",
+          "name": "John Doe",
+          "avatar": "http://localhost:5001/uploads/profile_images/avatar.jpg"
+        },
+        "rating": 5,
+        "ratedAt": "2025-11-20T10:30:00.000Z"
+      },
+      {
+        "user": {
+          "id": "user_id_2",
+          "name": "Jane Smith",
+          "avatar": null
+        },
+        "rating": 4,
+        "ratedAt": "2025-11-19T15:20:00.000Z"
+      }
+    ],
+    "pagination": {
+      "currentPage": 1,
+      "totalPages": 2,
+      "totalRatings": 15,
+      "limit": 10
+    }
+  }
+}
+```
+
+---
+
+## Rating System - Business Rules
+
+### Rating Constraints
+- **Range:** 1 to 5 stars (inclusive)
+- **Who Can Rate:** Only authenticated users
+- **What Can Be Rated:** Only published books
+- **Update:** Users can update their rating anytime
+- **Delete:** Users can remove their rating anytime
+
+### Rating Calculation
+- **Average Rating:** Calculated automatically from all user ratings
+- **Total Ratings:** Count of unique users who rated
+- **Precision:** Average shown with 1 decimal place (e.g., 4.3)
+
+### Rating Display
+- When fetching books, `averageRating` and `totalRatings` are included
+- Individual ratings show user information and timestamp
+- Ratings sorted by most recent first
+
+### Use Cases
+1. **First Time Rating:** User rates a book → rating added, average calculated
+2. **Update Rating:** User rates again → existing rating updated, average recalculated
+3. **Delete Rating:** User removes rating → rating deleted, average recalculated
+4. **View Ratings:** Anyone can see all ratings and average (public)
+5. **Check My Rating:** User can check if/how they rated a book
+
+---
+
 ## Subscription Management
 
 ### 1. Activate Subscription
@@ -1728,6 +1964,260 @@ CLOUDINARY_API_SECRET=your_api_secret
    - Public analytics
    - Author stats
    - Admin analytics
+
+---
+
+## Download Feature (Premium Only)
+
+### 1. Download Book as PDF
+**GET** `/books/:bookId/download`
+
+**Description:** Download a book with all its chapters as a PDF file. This feature is available only to:
+- Premium subscribers (for any published book)
+- Authors (for their own books, regardless of plan or book status)
+
+**Headers:**
+```
+Authorization: Bearer <accessToken>
+```
+
+**Required:** Premium subscription OR book author
+
+**URL Parameters:**
+- `bookId` (string) - The ID of the book to download
+
+**Response:** PDF file stream
+
+**Response Headers:**
+```
+Content-Type: application/pdf
+Content-Disposition: attachment; filename="book_title.pdf"
+```
+
+**PDF Features:**
+- Title page with book metadata (title, author, genre, tags, rating, reading time)
+- Table of contents
+- All chapters formatted properly
+- Page numbers on every page
+- Copyright notice
+- User email watermark (for tracking)
+- Download date
+
+**Limits:**
+- 10 downloads per day for premium users
+- Unlimited for authors downloading their own books
+
+**Error Responses:**
+
+**403 - Not Premium:**
+```json
+{
+  "success": false,
+  "message": "This feature is only available for premium subscribers. Please upgrade your plan.",
+  "error": "PREMIUM_REQUIRED"
+}
+```
+
+**403 - Subscription Expired:**
+```json
+{
+  "success": false,
+  "message": "Your subscription has expired. Please renew to access premium features.",
+  "error": "SUBSCRIPTION_EXPIRED"
+}
+```
+
+**429 - Download Limit Reached:**
+```json
+{
+  "success": false,
+  "message": "You have reached your daily download limit of 10 books. Please try again tomorrow.",
+  "error": "DOWNLOAD_LIMIT_REACHED"
+}
+```
+
+**404 - Book Not Found:**
+```json
+{
+  "success": false,
+  "message": "Book not found",
+  "error": "BOOK_NOT_FOUND"
+}
+```
+
+**403 - Download Disabled:**
+```json
+{
+  "success": false,
+  "message": "Downloads have been disabled for this book",
+  "error": "DOWNLOAD_DISABLED"
+}
+```
+
+---
+
+### 2. Get Download History
+**GET** `/downloads/history`
+
+**Description:** Get the download history for the current user
+
+**Headers:**
+```
+Authorization: Bearer <accessToken>
+```
+
+**Query Parameters:**
+- `page` (number, optional) - Page number (default: 1)
+- `limit` (number, optional) - Items per page (default: 10)
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Download history retrieved successfully",
+  "data": {
+    "downloads": [
+      {
+        "_id": "download_id_1",
+        "book": {
+          "_id": "book_id_1",
+          "title": "The Great Adventure",
+          "author": "author_id_1",
+          "image": "http://localhost:5001/uploads/book_covers/book1.jpg",
+          "genre": "Fantasy"
+        },
+        "downloadDate": "2025-11-20T10:30:00.000Z",
+        "ipAddress": "192.168.1.1"
+      }
+    ],
+    "pagination": {
+      "currentPage": 1,
+      "totalPages": 3,
+      "totalDownloads": 25,
+      "limit": 10
+    }
+  }
+}
+```
+
+---
+
+### 3. Get Download Statistics
+**GET** `/downloads/stats`
+
+**Description:** Get download statistics for the current user
+
+**Headers:**
+```
+Authorization: Bearer <accessToken>
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Download statistics retrieved successfully",
+  "data": {
+    "totalDownloads": 25,
+    "downloadsToday": 3,
+    "downloadsThisMonth": 18,
+    "remainingToday": 7,
+    "dailyLimit": 10
+  }
+}
+```
+
+---
+
+### 4. Get Author Download Analytics
+**GET** `/author/downloads/analytics`
+
+**Description:** Get download analytics for all books authored by the current user
+
+**Headers:**
+```
+Authorization: Bearer <accessToken>
+```
+
+**Required Role:** AUTHOR
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Author download analytics retrieved successfully",
+  "data": {
+    "totalDownloads": 450,
+    "downloadsThisMonth": 85,
+    "topDownloadedBooks": [
+      {
+        "_id": "book_id_1",
+        "bookId": "book_id_1",
+        "bookTitle": "The Great Adventure",
+        "downloadCount": 150
+      },
+      {
+        "_id": "book_id_2",
+        "bookId": "book_id_2",
+        "bookTitle": "Mystery Island",
+        "downloadCount": 120
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Download Feature - Business Rules
+
+### Subscription Plans & Download Access
+
+**Free Plan:**
+- Cannot download any books
+- Can read books online
+
+**Basic Plan ($5/month):**
+- Cannot download books
+- Can read books online
+- Access to basic subscriber features
+
+**Premium Plan ($10/month):**
+- Can download up to 10 books per day
+- Downloads include all chapters as formatted PDF
+- Watermarked with user email for security
+- Can read all books online
+
+**Author Exception:**
+- Authors can always download their own books
+- No subscription required for own books
+- No daily limit for own books
+- Can download drafts and published books
+
+### Download Tracking
+
+All downloads are tracked with:
+- User who downloaded
+- Book downloaded
+- Download timestamp
+- IP address (for security)
+
+This data is used for:
+- Analytics and reporting
+- Preventing abuse
+- Author insights
+- Revenue tracking
+
+### PDF Format
+
+Generated PDFs include:
+- **Title Page:** Book cover, title, author name, metadata
+- **Table of Contents:** All chapters listed
+- **Chapters:** Full content, properly formatted
+- **Page Numbers:** On every page
+- **Watermark:** User email (diagonal, semi-transparent)
+- **Copyright:** Author rights and license info
+- **Download Date:** When the PDF was generated
 
 ---
 

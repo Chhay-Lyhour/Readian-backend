@@ -14,7 +14,35 @@ const bookSchema = new Schema(
     },
     tags: String,
     genre: String,
-    rating: Number,
+    averageRating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+    },
+    totalRatings: {
+      type: Number,
+      default: 0,
+    },
+    ratings: [
+      {
+        user: {
+          type: Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
+        rating: {
+          type: Number,
+          required: true,
+          min: 1,
+          max: 5,
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
     image: {
       type: String,
       required: false,
@@ -45,6 +73,14 @@ const bookSchema = new Schema(
         ref: "User",
       },
     ],
+    downloadCount: {
+      type: Number,
+      default: 0,
+    },
+    allowDownload: {
+      type: Boolean,
+      default: true,
+    },
   },
   {
     timestamps: true,
