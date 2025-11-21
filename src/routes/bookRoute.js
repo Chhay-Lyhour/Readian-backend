@@ -18,6 +18,7 @@ import {
   paginationQuerySchema,
   chapterPaginationQuerySchema,
   updateBookStatusSchema,
+  updateContentTypeSchema,
 } from "../dto/bookValidationSchemas.js";
 import {
   addChapterSchema,
@@ -105,6 +106,14 @@ router.patch(
   requireRole(["AUTHOR", "ADMIN"]),
   validateRequestBody(updateBookStatusSchema),
   controller.updateBookStatus
+);
+
+router.patch(
+  "/:id/content-type",
+  requireAuth,
+  requireRole(["AUTHOR", "ADMIN"]),
+  validateRequestBody(updateContentTypeSchema),
+  controller.updateContentType
 );
 
 // --- Like/Unlike Routes ---

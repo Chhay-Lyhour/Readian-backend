@@ -268,7 +268,8 @@ Comprehensive documentation across all guides:
 ### Subscription System
 Complete subscription flow documentation:
 - API endpoints and plans
-- Activation process
+- Activation process with flexible duration (30, 90, 365 days)
+- Duration tracking and management
 - Premium feature access
 - Frontend implementation
 - Testing procedures

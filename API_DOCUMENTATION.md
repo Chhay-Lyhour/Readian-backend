@@ -342,6 +342,7 @@ Authorization: Bearer <access_token>
       "plan": "premium",
       "subscriptionStatus": "active",
       "subscriptionExpiresAt": "2025-12-20T00:00:00.000Z",
+      "subscriptionDuration": 30,
       "avatar": "https://res.cloudinary.com/.../avatar.jpg",
       "coverImage": "https://res.cloudinary.com/.../cover.jpg",
       "bio": "Passionate writer and reader",
@@ -832,6 +833,7 @@ Authorization: Bearer <access_token>
     "plan": "premium",
     "subscriptionStatus": "active",
     "subscriptionExpiresAt": "2025-12-20T00:00:00.000Z",
+    "subscriptionDuration": 30,
     "avatar": "https://res.cloudinary.com/.../avatar.jpg",
     "coverImage": "https://res.cloudinary.com/.../cover.jpg",
     "bio": "Passionate writer",
@@ -1268,6 +1270,99 @@ Authorization: Bearer <access_token>
 
 ---
 
+#### 8. Update Book Content Type
+
+Update the age-appropriateness of a book. Only the book's author or an admin can update the content type.
+
+```http
+PATCH /api/books/:id/content-type
+```
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+```
+
+**Request Body:**
+```json
+{
+  "contentType": "adult"
+}
+```
+
+**Allowed Values:**
+- `"kids"` - Suitable for ages 0-17
+- `"adult"` - Suitable for ages 18+
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Book content type updated to 'adult'.",
+  "data": {
+    "_id": "book_id_1",
+    "title": "Example Book",
+    "contentType": "adult",
+    "author": "author_id_1",
+    "status": "published",
+    "createdAt": "2025-09-15T10:00:00.000Z",
+    "updatedAt": "2025-11-21T10:00:00.000Z"
+  }
+}
+```
+
+**Error Responses:**
+
+**404 - Book Not Found:**
+```json
+{
+  "success": false,
+  "message": "The requested book could not be found.",
+  "error": {
+    "code": "BOOK_NOT_FOUND",
+    "statusCode": 404
+  }
+}
+```
+
+**403 - Insufficient Permissions:**
+```json
+{
+  "success": false,
+  "message": "You do not have permission to perform this action.",
+  "error": {
+    "code": "INSUFFICIENT_PERMISSIONS",
+    "statusCode": 403
+  }
+}
+```
+
+**400 - Invalid Content Type:**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "statusCode": 400,
+    "details": [
+      {
+        "field": "contentType",
+        "message": "Content type must be 'kids' or 'adult'"
+      }
+    ]
+  }
+}
+```
+
+**Notes:**
+- Only the book's author or an admin can update the content type
+- Changing a book to "adult" will immediately restrict access to users under 18
+- Changing a book to "kids" will make it accessible to all users
+- This is useful when content guidelines change or content is revised
+
+---
+
 ### Chapter Endpoints
 
 #### 1. Get Book Chapters
@@ -1697,14 +1792,12 @@ Authorization: Bearer <access_token>
 ```json
 {
   "success": true,
-  "message": "Subscription activated successfully.",
+  "message": "Subscription activated successfully for the premium plan (30 days).",
   "data": {
-    "user": {
-      "_id": "user_id",
-      "plan": "premium",
-      "subscriptionStatus": "active",
-      "subscriptionExpiresAt": "2025-12-20T17:30:00.000Z"
-    }
+    "plan": "premium",
+    "subscriptionStatus": "active",
+    "subscriptionExpiresAt": "2025-12-20T17:30:00.000Z",
+    "subscriptionDuration": 30
   }
 }
 ```
@@ -1726,13 +1819,12 @@ Authorization: Bearer <access_token>
 ```json
 {
   "success": true,
-  "message": "Subscription status retrieved successfully.",
+  "message": "Subscription status retrieved.",
   "data": {
     "plan": "premium",
     "subscriptionStatus": "active",
     "subscriptionExpiresAt": "2025-12-20T17:30:00.000Z",
-    "daysRemaining": 30,
-    "isActive": true
+    "subscriptionDuration": 30
   }
 }
 ```

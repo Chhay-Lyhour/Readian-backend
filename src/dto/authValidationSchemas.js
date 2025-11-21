@@ -15,6 +15,7 @@ const registerRequestSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
   name: z.string().min(2, "Name must be at least 2 characters"),
+  age: z.number().int().min(0, "Age must be at least 0").max(150, "Age cannot exceed 150").optional(),
 });
 
 // For: POST /api/auth/verify-email

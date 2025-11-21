@@ -320,6 +320,7 @@ APP_URL=http://localhost:5001
   plan: String (enum: ['free', 'basic', 'premium']),
   subscriptionStatus: String (enum: ['active', 'inactive']),
   subscriptionExpiresAt: Date,
+  subscriptionDuration: Number, // Duration in days (e.g., 30, 90, 365)
   createdAt: Date,
   updatedAt: Date
 }
@@ -415,17 +416,41 @@ Readian implements a comprehensive age-based content filtering system:
    - Applied to likes, ratings, and downloads
    - Enforced by `checkAgeRestriction` middleware
 
+4. **Content Type Management:**
+   - Authors can change their book's content type
+   - Endpoint: `PATCH /api/books/:id/content-type`
+   - Values: `"kids"` or `"adult"`
+   - Changes take effect immediately
+   - Only book author or admin can update
+
+**Example: Update Content Type**
+```javascript
+// Change book to adult content
+PATCH /api/books/book123/content-type
+{
+  "contentType": "adult"
+}
+
+// Change book to kids content
+PATCH /api/books/book123/content-type
+{
+  "contentType": "kids"
+}
+```
+
 ---
 
 ## 💳 Subscription System
 
 ### Subscription Tiers
 
-| Tier | Price | Features |
-|------|-------|----------|
-| **Free** | $0/month | - Browse kids books<br>- Read free books<br>- Basic profile |
-| **Basic** | $4.99/month | - All Free features<br>- Read premium books<br>- Download up to 10 books/month<br>- Ad-free experience |
-| **Premium** | $9.99/month | - All Basic features<br>- Unlimited downloads<br>- Advanced search<br>- Early access to new books<br>- Priority support |
+| Tier | Price | Duration | Features |
+|------|-------|----------|----------|
+| **Free** | $0 | Unlimited | - Browse kids books<br>- Read free books<br>- Basic profile |
+| **Basic** | $4.99 | 30/90/365 days | - All Free features<br>- Read premium books<br>- Download up to 10 books/month<br>- Ad-free experience |
+| **Premium** | $9.99 | 30/90/365 days | - All Basic features<br>- Unlimited downloads<br>- Advanced search<br>- Early access to new books<br>- Priority support |
+
+**Note:** Subscription duration is flexible and can be set when activating a subscription (default: 30 days).
 
 ### Features by Tier
 

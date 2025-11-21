@@ -92,6 +92,20 @@ export async function updateBookStatus(req, res, next) {
   }
 }
 
+export async function updateContentType(req, res, next) {
+  try {
+    const book = await bookService.updateContentType(
+      req.params.id,
+      req.body.contentType,
+      req.user.id
+    );
+    const message = `Book content type updated to '${book.contentType}'.`;
+    sendSuccessResponse(res, book, message);
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function searchBooks(req, res, next) {
   try {
     const { page, limit, ...searchCriteria } = req.query;

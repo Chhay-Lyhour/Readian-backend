@@ -604,6 +604,193 @@ const bookData = {
 await createBook(bookData, coverImageFile);
 ```
 
+#### Update Book Content Type
+
+Change the age-appropriateness of a book (kids or adult).
+
+```javascript
+async function updateBookContentType(bookId, contentType) {
+  try {
+    const response = await api.patch(`/books/${bookId}/content-type`, {
+      contentType // 'kids' or 'adult'
+    });
+    return response.data.data;
+  } catch (error) {
+    if (error.response?.status === 403) {
+      throw new Error('Only the book author can change content type');
+    }
+    console.error('Failed to update content type:', error);
+    throw error;
+  }
+}
+
+// Usage examples
+await updateBookContentType('book123', 'adult'); // Restrict to 18+
+await updateBookContentType('book123', 'kids');  // Make accessible to all
+```
+
+**React Component Example:**
+
+```javascript
+function ContentTypeToggle({ bookId, currentContentType, onUpdate }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleToggle = async (newType) => {
+    if (newType === currentContentType) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const updatedBook = await updateBookContentType(bookId, newType);
+      onUpdate(updatedBook);
+      toast.success(`Book is now suitable for ${newType === 'kids' ? 'all ages' : 'adults only'}`);
+    } catch (err) {
+      setError(err.message);
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="content-type-toggle">
+      <label>Content Type:</label>
+      <div className="toggle-buttons">
+        <button
+          onClick={() => handleToggle('kids')}
+          disabled={loading}
+          className={currentContentType === 'kids' ? 'active' : ''}
+        >
+          👶 Kids (0-17)
+        </button>
+        <button
+          onClick={() => handleToggle('adult')}
+          disabled={loading}
+          className={currentContentType === 'adult' ? 'active' : ''}
+        >
+          🔞 Adult (18+)
+        </button>
+      </div>
+      {error && <p className="error">{error}</p>}
+    </div>
+  );
+}
+```
+
+#### Publish Book
+
+```javascript
+async function publishBook(bookId) {
+  try {
+    const response = await api.post(`/books/${bookId}/publish`);
+    return response.data.data;
+  } catch (error) {
+    console.error('Failed to publish book:', error);
+    throw error;
+  }
+}
+
+// Usage
+await publishBook('book123');
+```
+
+#### Toggle Premium Status
+
+```javascript
+async function toggleBookPremium(bookId) {
+  try {
+    const response = await api.post(`/books/${bookId}/toggle-premium`);
+    return response.data.data;
+  } catch (error) {
+    console.error('Failed to toggle premium status:', error);
+    throw error;
+  }
+}
+
+// Usage
+const updatedBook = await toggleBookPremium('book123');
+console.log('Is Premium:', updatedBook.isPremium);
+```
+
+#### Update Book Status (Ongoing/Finished)
+
+```javascript
+async function updateBookStatus(bookId, bookStatus) {
+  try {
+    const response = await api.patch(`/books/${bookId}/status`, {
+      bookStatus // 'ongoing' or 'finished'
+    });
+    return response.data.data;
+  } catch (error) {
+    console.error('Failed to update book status:', error);
+    throw error;
+  }
+}
+
+// Usage
+await updateBookStatus('book123', 'finished');
+```
+
+#### Update Book (General)
+
+```javascript
+async function updateBook(bookId, updateData, coverImage) {
+  const formData = new FormData();
+  
+  if (updateData.title) formData.append('title', updateData.title);
+  if (updateData.genre) formData.append('genre', updateData.genre);
+  if (updateData.tags) formData.append('tags', updateData.tags);
+  if (updateData.isPremium !== undefined) formData.append('isPremium', updateData.isPremium);
+  if (updateData.contentType) formData.append('contentType', updateData.contentType);
+  
+  if (coverImage) {
+    formData.append('image', coverImage);
+  }
+  
+  try {
+    const response = await api.patch(`/books/${bookId}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data.data;
+  } catch (error) {
+    console.error('Failed to update book:', error);
+    throw error;
+  }
+}
+
+// Usage
+await updateBook('book123', { 
+  title: 'Updated Title',
+  contentType: 'adult',
+  isPremium: true 
+}, newCoverImageFile);
+```
+
+#### Delete Book
+
+```javascript
+async function deleteBook(bookId) {
+  if (!confirm('Are you sure you want to delete this book? This action cannot be undone.')) {
+    return;
+  }
+  
+  try {
+    const response = await api.delete(`/books/${bookId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to delete book:', error);
+    throw error;
+  }
+}
+
+// Usage
+await deleteBook('book123');
+```
+
 ### 3. User Profile Operations
 
 #### Update Profile

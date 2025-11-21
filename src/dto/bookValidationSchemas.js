@@ -73,3 +73,11 @@ export const updateBookStatusSchema = z.object({
     invalid_type_error: "Book status must be 'ongoing' or 'finished'",
   }),
 });
+
+export const updateContentTypeSchema = z.object({
+  contentType: z.enum(["kids", "adult"], {
+    required_error: "Content type is required",
+    invalid_type_error: "Content type must be 'kids' or 'adult'",
+  }),
+});
+

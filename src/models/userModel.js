@@ -33,6 +33,10 @@ const userSchema = new Schema(
       type: Date, // Stores the exact date and time the subscription ends
       default: null, // Default to null when no active subscription exists
     },
+    subscriptionDuration: {
+      type: Number, // Duration in days (e.g., 30, 90, 365)
+      default: null, // Default to null when no active subscription exists
+    },
     avatar: {
       type: String,
       required: false,

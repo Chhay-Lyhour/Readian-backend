@@ -71,11 +71,12 @@ This is the first official release of the Readian Platform - a comprehensive dig
 
 #### Subscription System
 - Three-tier plans (Free, Basic, Premium)
-- Subscription activation
+- Subscription activation with flexible duration (default: 30 days)
+- Support for custom duration (1-3650 days)
 - Automatic expiration handling
-- Subscription status checking
+- Subscription status checking with duration tracking
 - Premium feature gating
-- Duration-based subscriptions
+- Duration field stored in user model
 
 #### Download System
 - PDF generation with PDFKit

@@ -481,6 +481,36 @@ export async function updateBookStatus(bookId, bookStatus, authorId) {
 }
 
 /**
+ * Updates the content type of a book (kids or adult).
+ * Only the author of the book can update the content type.
+ * @param {string} bookId - The ID of the book.
+ * @param {string} contentType - The new content type ('kids' or 'adult').
+ * @param {string} authorId - The ID of the author making the request.
+ * @returns {Promise<Book>} - The updated book document.
+ */
+export async function updateContentType(bookId, contentType, authorId) {
+  const book = await BookModel.findById(bookId);
+  if (!book) throw new AppError("BOOK_NOT_FOUND");
+
+  if (book.author.toString() !== authorId) {
+    throw new AppError("INSUFFICIENT_PERMISSIONS");
+  }
+
+  // Validate contentType
+  if (!["kids", "adult"].includes(contentType)) {
+    throw new AppError(
+      "INVALID_CONTENT_TYPE",
+      "Content type must be 'kids' or 'adult'."
+    );
+  }
+
+  book.contentType = contentType;
+  await book.save();
+
+  return book;
+}
+
+/**
  * Retrieves all chapters for a book with pagination.
  * Enforces subscription check for premium books.
  * @param {string} bookId - The ID of the book.
