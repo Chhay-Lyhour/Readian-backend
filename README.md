@@ -37,7 +37,6 @@
 - [Authentication & Authorization](#-authentication--authorization)
 - [Age Restriction System](#-age-restriction-system)
 - [Subscription System](#-subscription-system)
-- [Stripe Payment Integration](#-stripe-payment-integration)
 - [File Upload & Storage](#-file-upload--storage)
 - [PDF Generation](#-pdf-generation)
 - [Deployment](#-deployment)
@@ -50,7 +49,7 @@
 
 ## 🌟 Overview
 
-**Readian** is a comprehensive digital book platform that connects authors and readers. Authors can publish their books with multiple chapters, while readers can discover, read, rate, and download books. The platform features a sophisticated subscription system with Stripe payment integration, age-based content filtering, and premium features for enhanced user experience.
+**Readian** is a comprehensive digital book platform that connects authors and readers. Authors can publish their books with multiple chapters, while readers can discover, read, rate, and download books. The platform features a sophisticated subscription system, age-based content filtering, and premium features for enhanced user experience.
 
 ### Mission
 
@@ -74,7 +73,6 @@ To become the leading digital book platform that empowers independent authors an
 - 🔒 **Age-Appropriate Content** - Automatic filtering based on user age
 - 📱 **Responsive Design** - Access from any device
 - 👤 **Personalized Profile** - Customize your avatar and cover image
-- 💳 **Flexible Subscriptions** - Pay securely with Stripe for Premium features
 
 ### For Authors
 
@@ -100,7 +98,6 @@ To become the leading digital book platform that empowers independent authors an
 - 🔐 **Secure Authentication** - JWT-based auth with access & refresh tokens
 - 📧 **Email Verification** - Verify user emails with OTP codes
 - 🔄 **Token Refresh** - Automatic token refresh for seamless experience
-- 💳 **Stripe Payment Integration** - Secure subscription payments
 - 🌍 **Cloudinary Integration** - Fast and reliable image storage
 - 📄 **PDF Generation** - High-quality PDF exports with PDFKit
 - 🛡️ **Rate Limiting** - Protection against abuse
@@ -129,10 +126,6 @@ To become the leading digital book platform that empowers independent authors an
 - **Security:** Helmet, CORS
 - **Rate Limiting:** express-rate-limit
 
-### Payment
-
-- **Payment Gateway:** Stripe API v17.4+
-- **Webhooks:** Stripe webhook handling for subscription events
 
 ### File Handling
 
@@ -170,7 +163,6 @@ Before you begin, ensure you have the following installed:
 - **npm** or **yarn** - Comes with Node.js
 - **MongoDB** (local or MongoDB Atlas) - [Setup Guide](https://www.mongodb.com/docs/manual/installation/)
 - **Cloudinary Account** - [Sign Up](https://cloudinary.com/)
-- **Stripe Account** - [Sign Up](https://stripe.com/)
 
 ### Installation
 
@@ -187,23 +179,17 @@ cd Readian-backend
 npm install
 ```
 
-3. **Install Stripe package:**
-
-```bash
-npm install stripe
-```
-
-4. **Create `.env` file:**
+3. **Create `.env` file:**
 
 ```bash
 cp .env.example .env
 ```
 
-5. **Configure environment variables:**
+4. **Configure environment variables:**
 
 Edit `.env` with your configuration (see [Environment Variables](#-environment-variables))
 
-6. **Start the server:**
+5. **Start the server:**
 
 **Development mode (with auto-reload):**
 
@@ -217,7 +203,7 @@ npm run dev
 npm start
 ```
 
-7. **Verify installation:**
+6. **Verify installation:**
 
 ```bash
 curl http://localhost:5001/api/analytics/public
@@ -237,29 +223,24 @@ Readian-backend/
 │   ├── config/                   # Configuration files
 │   │   ├── cloudinary.js         # Cloudinary setup
 │   │   ├── config.js             # General config
-│   │   ├── db.js                 # Database connection
-│   │   └── stripe.js             # Stripe configuration
+│   │   └── db.js                 # Database connection
 │   ├── controllers/              # Request handlers
 │   │   ├── authController.js
 │   │   ├── bookController.js
 │   │   ├── subscriptionController.js
-│   │   ├── paymentController.js
 │   │   └── ...
 │   ├── models/                   # Database models
 │   │   ├── userModel.js
 │   │   ├── bookModel.js
-│   │   ├── subscriptionModel.js
 │   │   └── ...
 │   ├── routes/                   # API routes
 │   │   ├── authRoute.js
 │   │   ├── bookRoute.js
 │   │   ├── subscriptionRoute.js
-│   │   ├── paymentRoute.js
 │   │   └── ...
 │   ├── services/                 # Business logic
 │   │   ├── authService.js
 │   │   ├── subscriptionService.js
-│   │   ├── paymentService.js
 │   │   └── ...
 │   ├── middlewares/              # Custom middlewares
 │   │   ├── authMiddleware.js
@@ -301,15 +282,6 @@ CLOUDINARY_CLOUD_NAME=your-cloud-name
 CLOUDINARY_API_KEY=your-api-key
 CLOUDINARY_API_SECRET=your-api-secret
 
-# Stripe Configuration
-STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
-STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
-STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
-
-# Stripe Price IDs (create these in Stripe Dashboard)
-STRIPE_BASIC_PRICE_ID=price_basic_monthly_id
-STRIPE_PREMIUM_PRICE_ID=price_premium_monthly_id
-
 # Email Configuration
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
@@ -328,8 +300,6 @@ APP_URL=http://localhost:5001
 
 - **Never commit `.env` file to version control**
 - Use strong, unique secrets for JWT tokens
-- For production, use production Stripe keys (starting with `sk_live_`)
-- Enable 2FA on your Stripe account for security
 
 ---
 
@@ -347,11 +317,9 @@ APP_URL=http://localhost:5001
   isVerified: Boolean,
   profileImage: String (Cloudinary URL),
   coverImage: String (Cloudinary URL),
-  subscriptionTier: String (enum: ['free', 'basic', 'premium']),
-  subscriptionStatus: String (enum: ['active', 'cancelled', 'past_due']),
-  stripeCustomerId: String,
-  stripeSubscriptionId: String,
-  subscriptionEndDate: Date,
+  plan: String (enum: ['free', 'basic', 'premium']),
+  subscriptionStatus: String (enum: ['active', 'inactive']),
+  subscriptionExpiresAt: Date,
   createdAt: Date,
   updatedAt: Date
 }
@@ -486,300 +454,6 @@ Readian implements a comprehensive age-based content filtering system:
 
 ---
 
-## 💰 Stripe Payment Integration
-
-### Overview
-
-Readian uses Stripe for secure subscription payments. Users can upgrade from Free to Basic or Premium tiers, and Stripe handles recurring billing automatically.
-
-### Setup Instructions
-
-#### 1. Create Stripe Account
-
-1. Sign up at [stripe.com](https://stripe.com)
-2. Complete account verification
-3. Enable test mode for development
-
-#### 2. Create Products and Prices
-
-**In Stripe Dashboard:**
-
-1. Go to **Products** → **Add Product**
-
-**Basic Subscription:**
-- Product Name: `Readian Basic`
-- Description: `Basic subscription with premium book access`
-- Pricing: `$4.99 USD`
-- Billing Period: `Monthly`
-- Copy the **Price ID** (starts with `price_`)
-
-**Premium Subscription:**
-- Product Name: `Readian Premium`
-- Description: `Premium subscription with unlimited downloads`
-- Pricing: `$9.99 USD`
-- Billing Period: `Monthly`
-- Copy the **Price ID** (starts with `price_`)
-
-3. Add these Price IDs to your `.env` file:
-
-```env
-STRIPE_BASIC_PRICE_ID=price_1234567890abcdef
-STRIPE_PREMIUM_PRICE_ID=price_0987654321fedcba
-```
-
-#### 3. Setup Webhooks
-
-Webhooks notify your server when subscription events occur (payment success, cancellation, etc.)
-
-**In Stripe Dashboard:**
-
-1. Go to **Developers** → **Webhooks** → **Add Endpoint**
-2. Endpoint URL: `https://your-domain.com/api/payments/webhook`
-   - For local testing: Use [Stripe CLI](https://stripe.com/docs/stripe-cli) or [ngrok](https://ngrok.com/)
-3. Select events to listen to:
-   - `checkout.session.completed`
-   - `customer.subscription.created`
-   - `customer.subscription.updated`
-   - `customer.subscription.deleted`
-   - `invoice.payment_succeeded`
-   - `invoice.payment_failed`
-4. Copy the **Signing Secret** (starts with `whsec_`)
-5. Add to `.env`:
-
-```env
-STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
-```
-
-#### 4. Local Testing with Stripe CLI
-
-For local development, use Stripe CLI to forward webhook events:
-
-```bash
-# Install Stripe CLI
-brew install stripe/stripe-cli/stripe
-
-# Login to Stripe
-stripe login
-
-# Forward webhooks to local server
-stripe listen --forward-to localhost:5001/api/payments/webhook
-
-# This will give you a webhook signing secret (whsec_...)
-# Use this in your .env file for local testing
-```
-
-### Implementation
-
-#### Step 1: Install Stripe
-
-```bash
-npm install stripe
-```
-
-#### Step 2: Create Stripe Configuration
-
-The Stripe configuration file is already created at `src/config/stripe.js`.
-
-#### Step 3: Payment Flow
-
-**Frontend → Backend Flow:**
-
-```
-1. User clicks "Upgrade to Basic/Premium"
-   ↓
-2. Frontend calls: POST /api/payments/create-checkout-session
-   Body: { tier: "basic" or "premium" }
-   ↓
-3. Backend creates Stripe Checkout Session
-   ↓
-4. Backend returns: { url: "https://checkout.stripe.com/..." }
-   ↓
-5. Frontend redirects user to Stripe Checkout
-   ↓
-6. User enters payment info on Stripe's secure page
-   ↓
-7. Stripe processes payment
-   ↓
-8. Stripe sends webhook to: /api/payments/webhook
-   ↓
-9. Backend updates user subscription in database
-   ↓
-10. Stripe redirects user back to success URL
-```
-
-### API Endpoints
-
-#### Create Checkout Session
-
-**Endpoint:** `POST /api/payments/create-checkout-session`
-
-**Headers:**
-```
-Authorization: Bearer <access_token>
-Content-Type: application/json
-```
-
-**Request Body:**
-```json
-{
-  "tier": "basic"  // or "premium"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "url": "https://checkout.stripe.com/c/pay/cs_test_...",
-    "sessionId": "cs_test_..."
-  }
-}
-```
-
-**Frontend Usage:**
-```javascript
-// Create checkout session
-const response = await fetch('/api/payments/create-checkout-session', {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${accessToken}`,
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({ tier: 'basic' })
-});
-
-const data = await response.json();
-
-// Redirect to Stripe Checkout
-window.location.href = data.data.url;
-```
-
-#### Cancel Subscription
-
-**Endpoint:** `POST /api/payments/cancel-subscription`
-
-**Headers:**
-```
-Authorization: Bearer <access_token>
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Subscription cancelled successfully"
-}
-```
-
-#### Get Subscription Status
-
-**Endpoint:** `GET /api/subscriptions/status`
-
-**Headers:**
-```
-Authorization: Bearer <access_token>
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "tier": "basic",
-    "status": "active",
-    "endDate": "2025-12-20T10:30:00.000Z",
-    "stripeSubscriptionId": "sub_...",
-    "cancelAtPeriodEnd": false
-  }
-}
-```
-
-#### Webhook Handler
-
-**Endpoint:** `POST /api/payments/webhook`
-
-**This is called by Stripe, not your frontend**
-
-Handles events:
-- `checkout.session.completed` - Subscription created
-- `customer.subscription.updated` - Subscription changed
-- `customer.subscription.deleted` - Subscription cancelled
-- `invoice.payment_succeeded` - Payment successful
-- `invoice.payment_failed` - Payment failed
-
-### Success and Cancel URLs
-
-After payment, Stripe redirects users to your frontend:
-
-**Success URL:** `http://localhost:3000/subscription/success?session_id={CHECKOUT_SESSION_ID}`
-
-**Cancel URL:** `http://localhost:3000/subscription/cancel`
-
-Configure these in your frontend to show appropriate messages.
-
-### Testing
-
-#### Test Card Numbers
-
-Stripe provides test cards for development:
-
-| Card Number | Scenario |
-|-------------|----------|
-| 4242 4242 4242 4242 | Success |
-| 4000 0000 0000 0002 | Card declined |
-| 4000 0000 0000 9995 | Insufficient funds |
-
-**Use any future expiry date, any 3-digit CVC, and any postal code.**
-
-#### Test Webhooks
-
-```bash
-# Listen for webhooks locally
-stripe listen --forward-to localhost:5001/api/payments/webhook
-
-# Trigger a test webhook
-stripe trigger checkout.session.completed
-```
-
-### Security Best Practices
-
-1. **Never expose secret keys** - Keep `STRIPE_SECRET_KEY` in `.env`
-2. **Verify webhook signatures** - Always validate `stripe-signature` header
-3. **Use HTTPS in production** - Stripe requires HTTPS for webhooks
-4. **Handle idempotency** - Stripe may send duplicate webhooks
-5. **Log all transactions** - Keep audit trail of subscription changes
-6. **Test thoroughly** - Use test mode before going live
-
-### Common Issues
-
-**Issue:** Webhook not receiving events
-- **Solution:** Check webhook URL is accessible from internet
-- For local dev, use Stripe CLI or ngrok
-
-**Issue:** "No such price" error
-- **Solution:** Verify Price IDs in `.env` match Stripe Dashboard
-
-**Issue:** Subscription not updating in database
-- **Solution:** Check webhook signature verification and event handling
-
-### Going Live
-
-Before launching to production:
-
-1. **Switch to live mode** in Stripe Dashboard
-2. **Create live products and prices**
-3. **Update `.env` with live keys:**
-   ```env
-   STRIPE_SECRET_KEY=sk_live_...
-   STRIPE_PUBLISHABLE_KEY=pk_live_...
-   ```
-4. **Update webhook endpoint** to production URL
-5. **Test with real card** (small amount)
-6. **Monitor Stripe Dashboard** for issues
-7. **Set up email notifications** for failed payments
-
----
 
 ## 📄 File Upload & Storage
 
@@ -816,7 +490,6 @@ Books can be downloaded as PDFs with:
 - Node.js hosting (Heroku, Railway, DigitalOcean, etc.)
 - MongoDB Atlas account
 - Cloudinary account
-- Stripe account
 - Domain name (optional)
 
 ### Deployment Steps
@@ -829,9 +502,7 @@ NODE_ENV=production
 
 # Update environment variables with production values
 # - Production MongoDB URI
-# - Production Stripe keys
 # - Production frontend URL
-# - Production webhook URL
 ```
 
 #### 2. Deploy to Heroku (Example)
@@ -849,7 +520,6 @@ heroku create readian-backend
 # Set environment variables
 heroku config:set NODE_ENV=production
 heroku config:set MONGODB_URI=your_production_mongodb_uri
-heroku config:set STRIPE_SECRET_KEY=sk_live_your_key
 # ... set all other env variables
 
 # Deploy
@@ -862,17 +532,9 @@ heroku ps:scale web=1
 heroku logs --tail
 ```
 
-#### 3. Configure Stripe Webhooks
-
-Update webhook endpoint to production URL:
-```
-https://your-production-domain.com/api/payments/webhook
-```
-
-#### 4. Test Production
+#### 3. Test Production
 
 - Test registration and login
-- Test subscription payment with real card (small amount)
 - Test book uploads and downloads
 - Monitor logs for errors
 
@@ -884,11 +546,6 @@ Ensure all these are set:
 - `MONGODB_URI` (MongoDB Atlas connection string)
 - `JWT_SECRET` (strong secret)
 - `JWT_REFRESH_SECRET` (strong secret)
-- `STRIPE_SECRET_KEY` (live key: `sk_live_...`)
-- `STRIPE_PUBLISHABLE_KEY` (live key: `pk_live_...`)
-- `STRIPE_WEBHOOK_SECRET` (from production webhook)
-- `STRIPE_BASIC_PRICE_ID` (live price ID)
-- `STRIPE_PREMIUM_PRICE_ID` (live price ID)
 - `CLOUDINARY_CLOUD_NAME`
 - `CLOUDINARY_API_KEY`
 - `CLOUDINARY_API_SECRET`
@@ -904,25 +561,6 @@ Ensure all these are set:
 
 See [POSTMAN_TESTING_GUIDE.md](POSTMAN_TESTING_GUIDE.md) for detailed testing procedures.
 
-### Testing Stripe Integration
-
-1. **Create Checkout Session:**
-```bash
-curl -X POST http://localhost:5001/api/payments/create-checkout-session \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"tier": "basic"}'
-```
-
-2. **Visit returned URL** and complete payment with test card: `4242 4242 4242 4242`
-
-3. **Verify subscription** updated in database
-
-4. **Test webhook** using Stripe CLI:
-```bash
-stripe trigger checkout.session.completed
-```
-
 ### Manual Testing Checklist
 
 - [ ] User registration and email verification
@@ -932,13 +570,8 @@ stripe trigger checkout.session.completed
 - [ ] Chapter creation and reading
 - [ ] Age restriction for adult content
 - [ ] Free tier limitations
-- [ ] Stripe checkout for Basic tier
-- [ ] Stripe checkout for Premium tier
-- [ ] Premium book access after subscription
+- [ ] Premium book access with subscription
 - [ ] PDF download with active subscription
-- [ ] Subscription cancellation
-- [ ] Webhook handling for all events
-- [ ] Access revoked after subscription ends
 
 ---
 
@@ -956,7 +589,6 @@ stripe trigger checkout.session.completed
 
 ### Quick Links
 
-- [Stripe Documentation](https://stripe.com/docs)
 - [MongoDB Documentation](https://docs.mongodb.com/)
 - [Cloudinary Documentation](https://cloudinary.com/documentation)
 - [Express.js Documentation](https://expressjs.com/)
@@ -1035,11 +667,6 @@ Need help? We're here for you!
 
 ### FAQ
 
-**Q: How do I test Stripe payments locally?**
-A: Use Stripe CLI to forward webhooks and test card `4242 4242 4242 4242`.
-
-**Q: Can I use a different payment provider?**
-A: Yes, but you'll need to implement the payment service yourself. Stripe is recommended for its ease of use.
 
 **Q: Is there a rate limit on the API?**
 A: Yes, 100 requests per 15 minutes per IP address.
@@ -1108,7 +735,6 @@ Special thanks to:
 - All contributors who helped build Readian
 - The open-source community for amazing tools
 - Our beta testers for valuable feedback
-- Stripe for excellent payment infrastructure
 - Cloudinary for reliable image hosting
 - MongoDB for flexible data storage
 
