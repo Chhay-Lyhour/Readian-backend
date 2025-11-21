@@ -23,7 +23,7 @@ const config = {
 
   jwtAccessSecret: process.env.JWT_ACCESS_SECRET,
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET,
-  jwtAccessExpiry: process.env.JWT_ACCESS_EXPIRY || "900",
+  jwtAccessExpiry: process.env.JWT_ACCESS_EXPIRY || "3000",
   jwtRefreshExpiry: process.env.JWT_REFRESH_EXPIRY || "1209600",
 
   bcryptSaltRounds: process.env.BCRYPT_SALT_ROUNDS || "12",
