@@ -50,13 +50,16 @@ const activateSubscription = async (userId, plan, duration = 30) => {
   if (isUpgradeToPremium) {
     // Upgrading from basic to premium: renew subscription (extend by specified duration from now)
     expiresAt = new Date(new Date().setDate(now.getDate() + duration));
+    subscriptionDuration = duration; // Set new duration
   } else if (hasActiveSubscription) {
     // Same plan or downgrading: keep existing expiration and duration
     expiresAt = user.subscriptionExpiresAt;
-    subscriptionDuration = user.subscriptionDuration;
+    // Keep existing duration if valid, otherwise use new duration
+    subscriptionDuration = user.subscriptionDuration || duration;
   } else {
     // No active subscription, start a new subscription with specified duration
     expiresAt = new Date(new Date().setDate(now.getDate() + duration));
+    subscriptionDuration = duration; // Explicitly set duration
   }
 
   // --- UPDATE THE USER DOCUMENT ---
