@@ -54,12 +54,12 @@ Readian is a digital book reading and publishing platform API that allows users 
 ### Token Types
 
 1. **Access Token**
-   - Short-lived (15 minutes)
+   - Short-lived (60 minutes)
    - Used for API requests
    - Sent in `Authorization` header
 
 2. **Refresh Token**
-   - Long-lived (7 days)
+   - Long-lived (14 days)
    - Used to obtain new access tokens
    - Stored securely by client
 
@@ -934,6 +934,7 @@ GET /api/books?page=1&limit=10
         "image": "https://res.cloudinary.com/.../cover.jpg",
         "genre": "Adventure",
         "tags": "action, fantasy",
+        "description": "An unforgettable journey through magical lands filled with wonder and danger. Follow our hero as they discover courage, friendship, and the true meaning of adventure.",
         "status": "published",
         "bookStatus": "ongoing",
         "isPremium": false,
@@ -1020,6 +1021,7 @@ GET /api/books/:id?chapterPage=1&chapterLimit=10
     "image": "https://res.cloudinary.com/.../cover.jpg",
     "genre": "Adventure",
     "tags": "action, fantasy",
+    "description": "An unforgettable journey through magical lands filled with wonder and danger. Follow our hero as they discover courage, friendship, and the true meaning of adventure.",
     "status": "published",
     "bookStatus": "ongoing",
     "isPremium": false,
@@ -1083,6 +1085,7 @@ Content-Type: multipart/form-data
 - `title`: Book title (required)
 - `genre`: Book genre (optional)
 - `tags`: Comma-separated tags (optional)
+- `description`: Book description to entice readers, 10-1000 characters (optional)
 - `isPremium`: Boolean (optional, default: false)
 - `contentType`: "kids" or "adult" (default: "kids")
 - `image`: Cover image file (optional)
@@ -1113,6 +1116,7 @@ Content-Type: multipart/form-data
     "author": "author_id",
     "genre": "Fantasy",
     "tags": "magic, adventure",
+    "description": "A spellbinding tale of magic and mystery that will captivate readers from the very first page.",
     "status": "draft",
     "bookStatus": "ongoing",
     "isPremium": false,
@@ -1142,6 +1146,7 @@ Content-Type: multipart/form-data
 - `title`: Book title (optional)
 - `genre`: Book genre (optional)
 - `tags`: Comma-separated tags (optional)
+- `description`: Book description to entice readers, 10-1000 characters (optional)
 - `isPremium`: Boolean (optional)
 - `contentType`: "kids" or "adult" (optional)
 - `bookStatus`: "ongoing" or "finished" (optional)

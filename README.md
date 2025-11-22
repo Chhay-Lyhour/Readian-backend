@@ -332,7 +332,7 @@ APP_URL=http://localhost:5001
 {
   title: String (required),
   author: ObjectId (ref: 'User'),
-  description: String,
+  description: String (max 1000 chars, enticing book description),
   coverImage: String (Cloudinary URL),
   genre: String,
   tags: [String],

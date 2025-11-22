@@ -28,8 +28,20 @@ configureCloudinary();
 // Global Middlewares
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow images to be loaded
+  crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
+  crossOriginEmbedderPolicy: false, // Disable for API
+  contentSecurityPolicy: false, // Disable for API flexibility
 }));
-app.use(cors({ origin: config.frontendUrl, credentials: true }));
+
+app.use(cors({
+  origin: config.corsOrigin || 'http://localhost:5173',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 600 // Cache preflight requests for 10 minutes
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -42,7 +54,11 @@ import("./config/staticFiles.js")
     console.warn("Could not setup static file serving:", err.message);
   });
 
+// Import Routes
+import healthRouter from "./routes/healthRoute.js";
+
 // Routes
+app.use("/api", healthRouter); // Health check endpoints
 app.use("/api/books", bookRouter);
 app.use("/api/books", ratingRouter);
 app.use("/api/auth", authRouter);

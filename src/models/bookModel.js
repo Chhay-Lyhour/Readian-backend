@@ -14,6 +14,11 @@ const bookSchema = new Schema(
     },
     tags: String,
     genre: String,
+    description: {
+      type: String,
+      maxlength: 1000,
+      default: "",
+    },
     averageRating: {
       type: Number,
       default: 0,

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0] - 2025-11-21
+
+### ✨ Features Added
+
+#### Book Enhancements
+- **Book Descriptions** - Added enticing book descriptions (10-1000 characters) to help readers discover compelling content
+  - Displayed on book cards and detail pages
+  - Optional field with validation
+  - Supports rich, engaging text to hook readers
+
+---
+
 ## [1.0.0] - 2025-11-20
 
 ### 🎉 Initial Release

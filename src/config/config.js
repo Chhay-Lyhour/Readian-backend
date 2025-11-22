@@ -17,7 +17,7 @@ const config = {
   port: process.env.PORT || 5001,
   nodeEnv: process.env.NODE_ENV || "development",
   frontendUrl: process.env.FRONTEND_URL || "http://localhost:3000",
-
+  corsOrigin: process.env.CORS_ORIGIN || "http://localhost:5173",
   mongoUri: process.env.MONGO_URI || "",
   testMongoUri: process.env.TEST_MONGO_URI || "",
 

@@ -62,10 +62,16 @@ export async function getAllBooks({ page, limit, user }) {
   const query = { status: "published" };
 
   // Apply age-based content filtering
+  // Only filter out adult content if user is not logged in OR is under 18
   if (!user || !user.age || user.age < 18) {
-    query.contentType = "kids"; // Only show kids content
+    // Exclude adult content - show kids, teen, and books without contentType (null or missing field)
+    query.$or = [
+      { contentType: { $in: ["kids", "teen"] } },
+      { contentType: null },
+      { contentType: { $exists: false } }
+    ];
   }
-  // If user is 18+, show all content (no additional filter)
+  // If user is logged in AND 18+, show all content including adult (no filter added)
 
   const [books, totalItems] = await Promise.all([
     BookModel.find(query).sort({ createdAt: 1 }).skip(skip).limit(limit).lean(),
@@ -265,10 +271,16 @@ export async function searchAndFilterBooks(
   const sortOption = {};
 
   // Apply age-based content filtering
+  // Only filter out adult content if user is not logged in OR is under 18
   if (!user || !user.age || user.age < 18) {
-    query.contentType = "kids"; // Only show kids content
+    // Exclude adult content - show kids, teen, and books without contentType (null or missing field)
+    query.$or = [
+      { contentType: { $in: ["kids", "teen"] } },
+      { contentType: null },
+      { contentType: { $exists: false } }
+    ];
   }
-  // If user is 18+, show all content (no additional filter)
+  // If user is logged in AND 18+, show all content including adult (no filter added)
 
   if (title) {
     query.title = { $regex: title, $options: "i" };
