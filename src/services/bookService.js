@@ -148,11 +148,28 @@ export async function getBooksByAuthor(authorId, options = {}) {
     BookModel.countDocuments(query),
   ]);
 
-  // Add chapter count to each book
+  // Add chapter count and explicit author fields to each book
   const booksWithChapterCount = await Promise.all(
     books.map(async (book) => {
       const totalChapters = await ChapterModel.countDocuments({ book: book._id });
-      return { ...book, totalChapters };
+
+      // Fetch author details if not populated (populate sometimes fails with lean)
+      let authorInfo = book.author;
+      if (typeof book.author === 'string' || (book.author && typeof book.author === 'object' && !book.author.name)) {
+        const User = (await import("../models/userModel.js")).default;
+        authorInfo = await User.findById(book.author).select('name email avatar').lean();
+      }
+
+      // Add explicit authorId and authorName fields for clarity
+      return {
+        ...book,
+        author: authorInfo, // Replace with populated author object
+        totalChapters,
+        authorId: authorInfo?._id || book.author, // Explicit author ID
+        authorName: authorInfo?.name || 'Unknown Author', // Explicit author name
+        authorEmail: authorInfo?.email,
+        authorAvatar: authorInfo?.avatar
+      };
     })
   );
 
@@ -168,6 +185,118 @@ export async function getBooksByAuthor(authorId, options = {}) {
     }
   };
 }
+
+/**
+ * Search and filter books with various criteria
+ * @param {object} searchCriteria - Search criteria (title, author, genre, tags, etc.)
+ * @param {string} userPlan - User's subscription plan
+ * @param {object} options - Pagination options
+ * @param {object} user - Current user object
+ */
+export const searchAndFilterBooks = async (searchCriteria, userPlan, options = {}, user) => {
+  const pageNum = Math.max(1, parseInt(options.page) || 1);
+  const limitNum = Math.min(100, Math.max(1, parseInt(options.limit) || 10));
+  const skip = (pageNum - 1) * limitNum;
+
+  // Build query
+  const query = { status: 'published' };
+
+  // Search by title
+  if (searchCriteria.title) {
+    query.title = { $regex: searchCriteria.title, $options: 'i' };
+  }
+
+  // Search by genre (premium feature)
+  if (searchCriteria.genre) {
+    query.genre = { $regex: searchCriteria.genre, $options: 'i' };
+  }
+
+  // Search by tags (premium feature)
+  if (searchCriteria.tags) {
+    query.tags = { $regex: searchCriteria.tags, $options: 'i' };
+  }
+
+  // Search by author name
+  if (searchCriteria.author) {
+    // First find users matching the author name
+    const User = (await import("../models/userModel.js")).default;
+    const authors = await User.find({
+      name: { $regex: searchCriteria.author, $options: 'i' }
+    }).select('_id');
+
+    if (authors.length > 0) {
+      query.author = { $in: authors.map(a => a._id) };
+    } else {
+      // No authors found, return empty result
+      return {
+        books: [],
+        pagination: {
+          currentPage: pageNum,
+          totalPages: 0,
+          totalBooks: 0,
+          hasMore: false
+        }
+      };
+    }
+  }
+
+  // Filter by content type based on user age
+  if (user && user.age) {
+    if (user.age < 18) {
+      query.contentType = 'kids';
+    }
+  } else {
+    // Not logged in, only show kids content
+    query.contentType = 'kids';
+  }
+
+  // Execute query with pagination
+  const [books, totalItems] = await Promise.all([
+    BookModel.find(query)
+      .populate('author', 'name email avatar')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .lean(),
+    BookModel.countDocuments(query),
+  ]);
+
+  // Add chapter count and explicit author fields
+  const booksWithDetails = await Promise.all(
+    books.map(async (book) => {
+      const totalChapters = await ChapterModel.countDocuments({ book: book._id });
+
+      // Fetch author details if not populated
+      let authorInfo = book.author;
+      if (typeof book.author === 'string' || (book.author && typeof book.author === 'object' && !book.author.name)) {
+        const User = (await import("../models/userModel.js")).default;
+        authorInfo = await User.findById(book.author).select('name email avatar').lean();
+      }
+
+      return {
+        ...book,
+        author: authorInfo, // Replace with populated author object
+        totalChapters,
+        authorId: authorInfo?._id || book.author,
+        authorName: authorInfo?.name || 'Unknown Author',
+        authorEmail: authorInfo?.email,
+        authorAvatar: authorInfo?.avatar
+      };
+    })
+  );
+
+  const totalPages = Math.ceil(totalItems / limitNum);
+
+  return {
+    books: booksWithDetails,
+    pagination: {
+      currentPage: pageNum,
+      totalPages: totalPages,
+      totalBooks: totalItems,
+      hasMore: pageNum < totalPages
+    }
+  };
+};
 
 /**
  * Retrieves a single book by its ID.
@@ -263,74 +392,6 @@ export const getBookById = async (
   };
 };
 
-export async function searchAndFilterBooks(
-  searchCriteria,
-  userPlan,
-  { page, limit },
-  user
-) {
-  const { title, author, genre, tags, sortByLikes } = searchCriteria;
-  const query = { status: "published" };
-  const sortOption = {};
-
-  // Apply age-based content filtering
-  // Only filter out adult content if user is not logged in OR is under 18
-  if (!user || !user.age || user.age < 18) {
-    // Exclude adult content - show kids, teen, and books without contentType (null or missing field)
-    query.$or = [
-      { contentType: { $in: ["kids", "teen"] } },
-      { contentType: null },
-      { contentType: { $exists: false } }
-    ];
-  }
-  // If user is logged in AND 18+, show all content including adult (no filter added)
-
-  if (title) {
-    query.title = { $regex: title, $options: "i" };
-  }
-
-  if (author) {
-    // Find user IDs for author names
-    const users = await User.find({ name: { $regex: author, $options: "i" } });
-    const userIds = users.map((user) => user._id);
-    query.author = { $in: userIds };
-  }
-
-  if (userPlan === "premium") {
-    if (genre) {
-      query.genre = { $regex: genre, $options: "i" };
-    }
-    if (tags) {
-      query.tags = { $regex: tags, $options: "i" };
-    }
-    if (sortByLikes) {
-      sortOption.likes = sortByLikes;
-    }
-  } else if (genre || tags || sortByLikes) {
-    // If a non-premium user tries to filter, throw an error
-    throw new AppError(
-      "PREMIUM_FEATURE_ONLY",
-      "Filtering by genre, tags, or sorting by likes is a premium feature."
-    );
-  }
-
-  const skip = (page - 1) * limit;
-  const [books, totalItems] = await Promise.all([
-    BookModel.find(query).sort(sortOption).skip(skip).limit(limit),
-    BookModel.countDocuments(query),
-  ]);
-
-  const totalPages = Math.ceil(totalItems / limit);
-  return {
-    books,
-    pagination: {
-      currentPage: page,
-      totalPages: totalPages,
-      totalBooks: totalItems,
-      hasMore: page < totalPages
-    }
-  };
-}
 
 /**
  * Updates a book by its ID. If chapters are provided, they are replaced.
