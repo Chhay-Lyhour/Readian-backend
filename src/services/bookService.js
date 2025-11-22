@@ -140,6 +140,7 @@ export async function getBooksByAuthor(authorId, options = {}) {
   // Execute query with pagination
   const [books, totalItems] = await Promise.all([
     BookModel.find(query)
+      .populate('author', 'name email avatar')
       .sort({ createdAt: -1 }) // Most recent first
       .skip(skip)
       .limit(limitNum)
@@ -179,8 +180,10 @@ export const getBookById = async (
   tokenUser,
   { chapterPage = 1, chapterLimit = 10 }
 ) => {
-  // Step 1: Find the book first.
-  const book = await BookModel.findById(bookId).lean();
+  // Step 1: Find the book first and populate author details.
+  const book = await BookModel.findById(bookId)
+    .populate('author', 'name email avatar')
+    .lean();
 
   // Step 2: If no book is found, exit immediately.
   if (!book) {
