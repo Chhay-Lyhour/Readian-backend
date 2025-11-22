@@ -66,8 +66,8 @@ To become the leading digital book platform that empowers independent authors an
 ### For Readers
 
 - 📚 **Browse & Discover** - Explore thousands of books across various genres
-- 🔍 **Advanced Search** - Search by title, author, genre, and tags (Premium)
-- ⭐ **Rate & Review** - Share your thoughts on books you've read
+- 🔍 **Advanced Search** - Search by title, author, genre, and tags
+- ⭐ **Rate Books** - Rate books with 1-5 stars
 - ❤️ **Like & Bookmark** - Save your favorite books for later
 - 📥 **Download as PDF** - Download books for offline reading (Premium)
 - 🔒 **Age-Appropriate Content** - Automatic filtering based on user age
@@ -87,11 +87,17 @@ To become the leading digital book platform that empowers independent authors an
 
 ### For Admins
 
-- 👥 **User Management** - Manage all user accounts
-- 📚 **Content Moderation** - Oversee published books
-- 📊 **Platform Analytics** - View platform-wide statistics
-- 🔧 **Role Management** - Assign and modify user roles
-- 💰 **Subscription Management** - Manage user subscriptions
+- 👥 **User Management** - Full CRUD operations on user accounts
+- 📚 **Content Moderation** - Delete any book on the platform
+- 📊 **Platform Analytics** - Comprehensive platform-wide statistics including:
+  - Total users, books, chapters
+  - Subscription breakdown (free, basic, premium)
+  - Top books by engagement (views, likes, ratings, downloads)
+  - Top authors with performance metrics
+  - Revenue tracking
+  - User growth trends (last 30 days)
+- 🔧 **Role Management** - Assign and modify user roles (READER, AUTHOR, ADMIN)
+- 💰 **Subscription Management** - Manage user subscriptions and access
 
 ### Platform Features
 
@@ -99,10 +105,13 @@ To become the leading digital book platform that empowers independent authors an
 - 📧 **Email Verification** - Verify user emails with OTP codes
 - 🔄 **Token Refresh** - Automatic token refresh for seamless experience
 - 🌍 **Cloudinary Integration** - Fast and reliable image storage
-- 📄 **PDF Generation** - High-quality PDF exports with PDFKit
+- 📄 **PDF Generation** - High-quality PDF exports with PDFKit (PDF only)
 - 🛡️ **Rate Limiting** - Protection against abuse
 - 🔒 **Security** - Helmet, CORS, and bcrypt for security
 - 📱 **RESTful API** - Well-documented, easy-to-integrate API
+- 📊 **Public Analytics** - Top books and authors visible on landing page
+- ⭐ **Star Ratings** - 1-5 star rating system (no text reviews)
+- 🚀 **Auto-Publish** - Authors can publish books without manual review
 
 ---
 
@@ -333,24 +342,87 @@ APP_URL=http://localhost:5001
   title: String (required),
   author: ObjectId (ref: 'User'),
   description: String (max 1000 chars, enticing book description),
-  coverImage: String (Cloudinary URL),
+  readingTime: String,
+  image: String (Cloudinary URL),
   genre: String,
-  tags: [String],
+  tags: String (comma-separated),
   isPremium: Boolean,
   contentType: String (enum: ['kids', 'adult']),
   status: String (enum: ['draft', 'published']),
-  views: Number,
-  likes: [ObjectId],
+  bookStatus: String (enum: ['ongoing', 'finished']),
+  publishedDate: Date,
+  viewCount: Number,
+  likes: Number,
+  likedBy: [ObjectId (ref: 'User')],
   ratings: [{
-    user: ObjectId,
-    rating: Number (1-5)
+    user: ObjectId (ref: 'User'),
+    rating: Number (1-5 stars only, no text reviews)
   }],
-  averageRating: Number,
-  chapters: [ObjectId] (ref: 'Chapter'),
+  averageRating: Number (0-5),
+  totalRatings: Number,
+  downloadCount: Number,
+  allowDownload: Boolean,
   createdAt: Date,
   updatedAt: Date
 }
 ```
+
+---
+
+## 📊 Analytics & Data Visibility
+
+### Admin Analytics (Admin Only)
+
+Admins have access to comprehensive platform analytics via `GET /api/admin/analytics`:
+
+```javascript
+{
+  "totalUsers": 4,
+  "totalBooks": 6,
+  "publishedBooks": 3,
+  "draftBooks": 3,
+  "totalChapters": 28,
+  "totalLikes": 1,
+  "totalViews": 54,
+  "basicSubscribers": 0,
+  "premiumSubscribers": 1,
+  "freeUsers": 3,
+  "revenueThisMonth": 10,
+  "users": {
+    "total": 4,
+    "roles": { "ADMIN": 1, "AUTHOR": 3 },
+    "subscriptionBreakdown": {
+      "basicSubscribers": 0,
+      "premiumSubscribers": 1,
+      "freeUsers": 3
+    }
+  },
+  "books": {
+    "total": 6,
+    "status": { "published": 3, "draft": 3 },
+    "premium": 1,
+    "totalViews": 54,
+    "totalLikes": 1
+  },
+  "detailed": {
+    "newUsersLast30Days": [...],
+    "topBooks": [...],      // Includes all engagement metrics
+    "topAuthors": [...]     // Includes all author performance data
+  }
+}
+```
+
+### Public Analytics (Everyone)
+
+Public users can access limited analytics via `GET /api/analytics/public`:
+- **Top Books**: Most popular books by engagement (visible on landing page)
+- **Top Authors**: Most successful authors by metrics (visible on landing page)
+
+**Note**: Public analytics show only aggregated, non-sensitive data suitable for landing page display.
+
+---
+- `GET /api/books/:bookId/chapters/:chapterNumber`
+- Example: `/api/books/691c2df9ec92a7ce9425f25e/chapters/1`
 
 ---
 
@@ -452,6 +524,10 @@ PATCH /api/books/book123/content-type
 
 **Note:** Subscription duration is flexible and can be set when activating a subscription (default: 30 days).
 
+### Current Implementation Status
+
+⚠️ **Frontend Subscription Payment**: The subscription payment flow in the frontend is currently under development. Backend subscription API is fully functional and ready for integration.
+
 ### Features by Tier
 
 ```javascript
@@ -498,13 +574,15 @@ Readian uses Cloudinary for storing images (book covers, profile images, cover i
 - `POST /api/books` - Upload book cover during creation
 - `PUT /api/books/:id` - Update book cover
 
-### PDF Generation
+## 📄 PDF Generation
 
 Books can be downloaded as PDFs with:
 - Professional formatting
 - Chapter organization
 - Metadata (title, author, date)
 - Optimized for reading
+
+**Supported Format**: PDF only (no EPUB or other formats currently)
 
 ---
 

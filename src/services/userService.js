@@ -166,6 +166,13 @@ export async function getAuthorStats(authorId) {
 
   const baseStats = bookStats[0] || { totalBooks: 0, totalViews: 0, totalLikes: 0 };
 
+  // Get top books by views
+  const topBooks = await BookModel.find({ author: authorObjectId, status: "published" })
+    .sort({ viewCount: -1 })
+    .limit(10)
+    .select('title viewCount likes downloadCount averageRating totalRatings image genre')
+    .lean();
+
   return {
     stats: {
       totalBooks: baseStats.totalBooks,
@@ -174,7 +181,8 @@ export async function getAuthorStats(authorId) {
       totalLikes: baseStats.totalLikes,
       totalViews: baseStats.totalViews,
       totalChapters: totalChapters,
-    }
+    },
+    topBooks: topBooks
   };
 }
 

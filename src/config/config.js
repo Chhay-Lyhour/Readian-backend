@@ -23,8 +23,8 @@ const config = {
 
   jwtAccessSecret: process.env.JWT_ACCESS_SECRET,
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET,
-  jwtAccessExpiry: process.env.JWT_ACCESS_EXPIRY || "3000",
-  jwtRefreshExpiry: process.env.JWT_REFRESH_EXPIRY || "1209600",
+  jwtAccessExpiry: process.env.JWT_ACCESS_EXPIRY || "3600", // 60 minutes (60 * 60 = 3600 seconds)
+  jwtRefreshExpiry: process.env.JWT_REFRESH_EXPIRY || "1209600", // 14 days (14 * 24 * 60 * 60 = 1209600 seconds)
 
   bcryptSaltRounds: process.env.BCRYPT_SALT_ROUNDS || "12",
 
