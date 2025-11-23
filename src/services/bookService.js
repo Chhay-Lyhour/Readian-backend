@@ -74,7 +74,12 @@ export async function getAllBooks({ page, limit, user }) {
   // If user is logged in AND 18+, show all content including adult (no filter added)
 
   const [books, totalItems] = await Promise.all([
-    BookModel.find(query).sort({ createdAt: 1 }).skip(skip).limit(limit).lean(),
+    BookModel.find(query)
+      .populate('author', 'name avatar')
+      .sort({ createdAt: 1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
     BookModel.countDocuments(query),
   ]);
 
@@ -148,28 +153,11 @@ export async function getBooksByAuthor(authorId, options = {}) {
     BookModel.countDocuments(query),
   ]);
 
-  // Add chapter count and explicit author fields to each book
+  // Add chapter count to each book
   const booksWithChapterCount = await Promise.all(
     books.map(async (book) => {
       const totalChapters = await ChapterModel.countDocuments({ book: book._id });
-
-      // Fetch author details if not populated (populate sometimes fails with lean)
-      let authorInfo = book.author;
-      if (typeof book.author === 'string' || (book.author && typeof book.author === 'object' && !book.author.name)) {
-        const User = (await import("../models/userModel.js")).default;
-        authorInfo = await User.findById(book.author).select('name email avatar').lean();
-      }
-
-      // Add explicit authorId and authorName fields for clarity
-      return {
-        ...book,
-        author: authorInfo, // Replace with populated author object
-        totalChapters,
-        authorId: authorInfo?._id || book.author, // Explicit author ID
-        authorName: authorInfo?.name || 'Unknown Author', // Explicit author name
-        authorEmail: authorInfo?.email,
-        authorAvatar: authorInfo?.avatar
-      };
+      return { ...book, totalChapters };
     })
   );
 
@@ -261,27 +249,11 @@ export const searchAndFilterBooks = async (searchCriteria, userPlan, options = {
     BookModel.countDocuments(query),
   ]);
 
-  // Add chapter count and explicit author fields
+  // Add chapter count to each book
   const booksWithDetails = await Promise.all(
     books.map(async (book) => {
       const totalChapters = await ChapterModel.countDocuments({ book: book._id });
-
-      // Fetch author details if not populated
-      let authorInfo = book.author;
-      if (typeof book.author === 'string' || (book.author && typeof book.author === 'object' && !book.author.name)) {
-        const User = (await import("../models/userModel.js")).default;
-        authorInfo = await User.findById(book.author).select('name email avatar').lean();
-      }
-
-      return {
-        ...book,
-        author: authorInfo, // Replace with populated author object
-        totalChapters,
-        authorId: authorInfo?._id || book.author,
-        authorName: authorInfo?.name || 'Unknown Author',
-        authorEmail: authorInfo?.email,
-        authorAvatar: authorInfo?.avatar
-      };
+      return { ...book, totalChapters };
     })
   );
 
