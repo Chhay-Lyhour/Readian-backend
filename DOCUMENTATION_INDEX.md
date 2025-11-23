@@ -1,13 +1,36 @@
 # Readian Platform - Documentation Index
 
-**Version:** 1.0.0  
-**Last Updated:** November 20, 2025
+**Version:** 1.2.0  
+**Last Updated:** November 23, 2025
 
 ---
 
 ## 📚 Complete Documentation Suite
 
 Welcome to the Readian Platform documentation! This comprehensive suite covers everything you need to know about the platform, from technical API details to legal policies.
+
+---
+
+## 🆕 Recent Updates (v1.2.0)
+
+### New Features Documented
+- **Search and Filter System**: Universal search by title, tags, author, genre (all plans)
+- **Book Status Access Control**: Free/Basic see finished books, Premium gets early access to ongoing
+- **Subscription-Based Content Access**: Tiered access to ongoing vs finished books
+- **Early Access Feature**: Premium users can read books as they're being written
+
+### Previous Updates (v1.1.0)
+- **Age-Based Content Filtering**: User age field and content type system (kids/adult)
+- **Public Analytics Endpoint**: Landing page data with totalLikes for books and authors
+- **Subscription Duration Control**: Flexible subscription periods (1-3650 days)
+- **Content Type Management**: New endpoint for authors to update book content ratings
+- **Enhanced Downloads**: Improved PDF generation without watermarks
+
+### Updated Documentation
+- **API_DOCUMENTATION.md**: Added search endpoint, book status filtering, subscription access rules
+- **FRONTEND_INTEGRATION_GUIDE.md**: Added search examples, book status badges, upgrade prompts
+- **README.md**: Updated subscription tiers with book status access matrix
+- **CHANGELOG.md**: Added v1.2.0 entry with search/filter features
 
 ---
 
@@ -414,8 +437,8 @@ Documentation is updated:
 - **As needed:** Bug fixes, clarifications
 - **Quarterly:** Comprehensive review
 
-**Current Version:** 1.0.0  
-**Next Review:** February 20, 2026
+**Current Version:** 1.2.0  
+**Next Review:** February 23, 2026
 
 ---
 
@@ -506,9 +529,9 @@ This comprehensive documentation suite provides everything needed to:
 
 ---
 
-**Last Updated:** November 20, 2025  
-**Documentation Version:** 1.0.0  
-**Platform Version:** 1.0.0
+**Last Updated:** November 23, 2025  
+**Documentation Version:** 1.2.0  
+**Platform Version:** 1.2.0
 
 ---
 

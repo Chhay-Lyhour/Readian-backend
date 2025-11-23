@@ -1,7 +1,7 @@
 # Readian Frontend Integration Guide
 
-**Version:** 1.0.0  
-**Last Updated:** November 20, 2025
+**Version:** 1.2.0  
+**Last Updated:** November 23, 2025
 
 ---
 
@@ -13,10 +13,11 @@
 4. [API Service Layer](#api-service-layer)
 5. [State Management](#state-management)
 6. [Common Integration Patterns](#common-integration-patterns)
-7. [File Upload Examples](#file-upload-examples)
-8. [Error Handling](#error-handling)
-9. [Age Restriction Implementation](#age-restriction-implementation)
-10. [Code Examples by Framework](#code-examples-by-framework)
+7. [Analytics & Public Data](#analytics--public-data)
+8. [File Upload Examples](#file-upload-examples)
+9. [Error Handling](#error-handling)
+10. [Age Restriction Implementation](#age-restriction-implementation)
+11. [Code Examples by Framework](#code-examples-by-framework)
 
 ---
 
@@ -30,6 +31,109 @@ This guide provides comprehensive instructions for integrating the Readian API i
 Development: http://localhost:5001/api
 Production: https://your-production-domain.com/api
 ```
+
+### What's New in Version 1.2.0
+
+This update focuses on search functionality and book status access control:
+
+#### 🔍 Search and Filter System (NEW!)
+- **Universal Search**: All users can search by title, tags, author, and genre
+- **Automatic Filtering**: Backend filters books by status based on user plan
+- **No Frontend Logic Needed**: Book status filtering handled automatically
+- **Search Endpoint**: New comprehensive search with all filters
+
+#### 🚀 Book Status Access Control (NEW!)
+- **Free & Basic Plans**: Only see finished/completed books
+- **Premium Plan**: Early access to ongoing books (read as chapters are released)
+- **Smart Backend Logic**: Automatic filtering based on subscription tier
+- **Frontend Implementation**: Display badges and upgrade prompts
+
+### What's New in Version 1.1.0
+
+Previous update included several important features and enhancements:
+
+#### 🎂 Age-Based Content Filtering
+- **User Age Field**: Users can now set their age in their profile (0-150 years)
+- **Content Types**: Books are classified as "kids" (0-17) or "adult" (18+)
+- **Access Control**: 
+  - Kids content: Accessible to everyone (logged in or not)
+  - Adult content: Requires login + age ≥ 18
+  - Users must set their age to access adult content
+- **Frontend Impact**: Implement age guards and content filtering in your UI
+
+#### 📊 Public Analytics Endpoint
+- **No Authentication Required**: New `/api/analytics/public` endpoint
+- **Landing Page Data**: Get top books and top authors for showcasing
+- **Rich Metrics**: Includes views, likes (totalLikes), ratings, downloads
+- **Author Stats**: Author data now includes totalLikes across all books
+- **Use Case**: Perfect for landing pages and marketing materials
+
+#### 📅 Subscription Duration Control
+- **Flexible Duration**: Subscriptions now support custom duration in days
+- **Duration Parameter**: 1-3650 days (30 default for monthly)
+- **Common Values**: 30 (monthly), 90 (quarterly), 365 (yearly)
+- **Response Data**: Returns subscriptionDuration and subscriptionExpiresAt
+- **Use Case**: Build flexible pricing pages with different duration options
+
+#### 🔞 Content Type Management
+- **New Endpoint**: `PATCH /api/books/:id/content-type`
+- **Author Control**: Authors can change book content type (kids/adult)
+- **Immediate Effect**: Changes take effect instantly for all users
+- **Use Case**: Add content rating controls in author dashboard
+
+#### 📥 Enhanced Download Feature
+- **Clean PDFs**: Removed watermarks and extra pages
+- **Better Layout**: Full page utilization without wasted space
+- **Content Focus**: Only book content, no unnecessary footers
+- **Age Restriction**: Download respects age-based access control
+
+#### 🔍 Search & Filter with Book Status Access
+- **Search Capability**: All users can search by title, tags, author name, and genre
+- **Free & Basic Users**: Can only read **finished/completed** books
+- **Premium Users**: Can read **ongoing** books (early access to incomplete books)
+- **Premium Content**: Both Basic and Premium users can access premium books (isPremium)
+- **Smart Filtering**: Backend automatically filters books based on user's plan
+
+#### 🖼️ Cloudinary Integration
+- **Profile Images**: Upload user avatars to Cloudinary
+- **Cover Images**: Upload user cover images to Cloudinary
+- **Book Covers**: Upload book cover images to Cloudinary
+- **Automatic Handling**: Images are automatically uploaded and URLs returned
+
+### Migration Guide from v1.0.0
+
+If you're upgrading from version 1.0.0, here's what you need to update:
+
+1. **Add Age Verification UI**:
+   - Add age field to user profile forms
+   - Implement age guard components for adult content
+   - Display age badges (18+) on adult books
+
+2. **Implement Public Analytics**:
+   - Add analytics fetching to landing page
+   - Display top books and authors
+   - Use totalLikes instead of likes for accurate counts
+
+3. **Update Subscription Forms**:
+   - Add duration selector (monthly/quarterly/yearly)
+   - Display subscriptionDuration in user profile
+   - Show exact expiration date from subscriptionExpiresAt
+
+4. **Add Content Type Controls** (for authors):
+   - Add content type selector when creating/editing books
+   - Show current contentType in book management UI
+   - Allow authors to change content type post-publication
+
+5. **Update Book Filtering**:
+   - Filter books by contentType based on user age
+   - Show appropriate messages for age-restricted content
+   - Handle AGE_NOT_SET and AGE_RESTRICTED error codes
+
+6. **Implement Book Status Badges**:
+   - Display "Ongoing" or "Completed" badges on book cards
+   - Show "Early Access" badge for ongoing books (Premium only)
+   - Filter book lists based on user plan (Free/Basic see only finished)
+   - Add upgrade prompts for free users wanting ongoing books
 
 ---
 
@@ -806,8 +910,27 @@ async function updateProfile(userData) {
   }
 }
 
-// Example: Set user age
+// Example usage:
+await updateProfile({ 
+  name: 'John Doe',
+  bio: 'Avid reader and book enthusiast',
+  age: 25  // IMPORTANT: Required to access adult content
+});
+
+// Set only age
 await updateProfile({ age: 25 });
+```
+
+**Allowed Profile Fields:**
+- `name`: String (min 2 characters)
+- `bio`: String (max 500 characters)
+- `age`: Number (0-150) - **Required for adult content access**
+
+**Important Notes:**
+- Users **must set their age** to access books with `contentType: "adult"`
+- Users under 18 (age < 18) cannot access adult content
+- Users 18+ can access both kids and adult content
+- Non-logged-in users can only see kids content
 ```
 
 #### Update Profile Image
@@ -905,14 +1028,38 @@ async function subscribe(plan, duration = 30) {
   try {
     const response = await api.post('/subscriptions/activate', {
       plan, // 'basic' or 'premium'
-      duration, // days
+      duration, // Number of days (e.g., 30, 90, 365) - defaults to 30
     });
     return response.data.data;
+    // Returns: { plan, subscriptionStatus, subscriptionExpiresAt, subscriptionDuration }
   } catch (error) {
     console.error('Subscription failed:', error);
     throw error;
   }
 }
+
+// Example usage with different durations:
+// Monthly: subscribe('premium', 30)
+// Quarterly: subscribe('premium', 90)
+// Yearly: subscribe('premium', 365)
+```
+
+**Subscription Plans:**
+- `free`: Free tier (default for all users)
+- `basic`: Basic subscription plan
+- `premium`: Premium subscription plan with full access
+
+**Duration Options:**
+- Minimum: 1 day
+- Maximum: 3650 days (10 years)
+- Default: 30 days
+- Common values: 30 (monthly), 90 (quarterly), 365 (yearly)
+
+**Response includes:**
+- `plan`: The activated plan name
+- `subscriptionStatus`: "active" or "inactive"
+- `subscriptionExpiresAt`: ISO date string of expiration
+- `subscriptionDuration`: Number of days the subscription lasts
 ```
 
 #### Get Subscription Status
@@ -929,7 +1076,123 @@ async function getSubscriptionStatus() {
 }
 ```
 
-### 6. Download Book
+### 6. Search and Filter Books
+
+Search and filter books by title, tags, author name, and genre. **Book status filtering is automatic based on user plan.**
+
+```javascript
+async function searchBooks(searchParams) {
+  try {
+    const params = new URLSearchParams();
+    
+    // Search parameters
+    if (searchParams.title) params.append('title', searchParams.title);
+    if (searchParams.tags) params.append('tags', searchParams.tags);
+    if (searchParams.author) params.append('author', searchParams.author);
+    if (searchParams.genre) params.append('genre', searchParams.genre);
+    
+    // Pagination
+    params.append('page', searchParams.page || 1);
+    params.append('limit', searchParams.limit || 10);
+    
+    const response = await api.get(`/books/search?${params.toString()}`);
+    return response.data.data;
+  } catch (error) {
+    console.error('Search failed:', error);
+    throw error;
+  }
+}
+
+// Example usage:
+const results = await searchBooks({
+  title: 'fantasy',
+  genre: 'Fiction',
+  page: 1,
+  limit: 20
+});
+```
+
+**Search Capabilities by Plan:**
+
+| Feature | Free | Basic | Premium |
+|---------|------|-------|---------|
+| Search by title | ✅ | ✅ | ✅ |
+| Search by tags | ✅ | ✅ | ✅ |
+| Search by author | ✅ | ✅ | ✅ |
+| Search by genre | ✅ | ✅ | ✅ |
+| See finished books | ✅ | ✅ | ✅ |
+| See ongoing books (early access) | ❌ | ❌ | ✅ |
+| Access premium books | ❌ | ✅ | ✅ |
+
+**Book Status Access Rules:**
+- **Free & Basic users**: Can only see and read **finished/completed** books
+- **Premium users**: Can see both **ongoing** and **finished** books (early access)
+- **Backend automatically filters** books based on user's plan - no need to filter on frontend
+
+**Example: Display Search Results with Status Badges**
+
+```javascript
+function SearchResults({ books, userPlan }) {
+  return (
+    <div className="search-results">
+      {books.map(book => (
+        <div key={book._id} className="book-card">
+          <img src={book.image} alt={book.title} />
+          <h3>{book.title}</h3>
+          <p className="author">by {book.author.name}</p>
+          
+          {/* Book Status Badge */}
+          <div className="badges">
+            {book.bookStatus === 'ongoing' && (
+              <span className="badge ongoing">
+                🚀 Ongoing {userPlan === 'premium' ? '(Early Access)' : ''}
+              </span>
+            )}
+            {book.bookStatus === 'finished' && (
+              <span className="badge finished">✅ Completed</span>
+            )}
+            
+            {book.isPremium && (
+              <span className="badge premium">⭐ Premium</span>
+            )}
+            
+            {book.contentType === 'adult' && (
+              <span className="badge adult">18+</span>
+            )}
+          </div>
+          
+          <button onClick={() => readBook(book._id)}>
+            Read Now
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+**Example: Upgrade Prompt for Free Users**
+
+```javascript
+function BookStatusNotice({ book, userPlan }) {
+  if (book.bookStatus === 'ongoing' && (userPlan === 'free' || userPlan === 'basic')) {
+    return (
+      <div className="upgrade-notice">
+        <h4>🚀 This book is still ongoing!</h4>
+        <p>Upgrade to Premium to get early access to ongoing books and read chapters as they're released.</p>
+        <button onClick={() => navigate('/subscription')}>
+          Upgrade to Premium
+        </button>
+        <p className="note">This book will be available to all users once completed.</p>
+      </div>
+    );
+  }
+  
+  return null;
+}
+```
+
+### 7. Download Book
 
 ```javascript
 async function downloadBook(bookId) {
@@ -961,6 +1224,292 @@ async function downloadBook(bookId) {
   }
 }
 ```
+
+### 8. Public Analytics
+
+Get platform-wide analytics without authentication (perfect for landing pages).
+
+```javascript
+async function getPublicAnalytics() {
+  try {
+    const response = await api.get('/analytics/public');
+    return response.data.data;
+  } catch (error) {
+    console.error('Failed to get analytics:', error);
+    throw error;
+  }
+}
+
+// Example response structure:
+// {
+//   topBooks: [
+//     {
+//       _id: "book_id",
+//       title: "Book Title",
+//       description: "Book description",
+//       author: {
+//         _id: "author_id",
+//         name: "Author Name",
+//         avatar: "cloudinary_url"
+//       },
+//       image: "cloudinary_url",
+//       genre: "Fiction",
+//       isPremium: false,
+//       publishedDate: "2025-01-15T00:00:00.000Z",
+//       viewCount: 5000,
+//       totalLikes: 450,        // Number of likes
+//       averageRating: 4.5,
+//       totalRatings: 120,
+//       downloadCount: 230,
+//       engagement: {
+//         views: 5000,
+//         likes: 450,
+//         ratings: 120,
+//         downloads: 230
+//       }
+//     }
+//   ],
+//   topAuthors: [
+//     {
+//       authorId: "author_id",
+//       authorName: "Author Name",
+//       authorEmail: "author@example.com",
+//       authorAvatar: "cloudinary_url",
+//       totalViews: 15000,
+//       totalLikes: 1200,       // Total likes across all books
+//       totalRatings: 450,
+//       totalDownloads: 800,
+//       averageRating: 4.3,
+//       bookCount: 8,
+//       engagement: {
+//         views: 15000,
+//         likes: 1200,
+//         ratings: 450,
+//         downloads: 800
+//       }
+//     }
+//   ]
+// }
+```
+
+**Usage Example - Landing Page:**
+
+```javascript
+// React Component
+import React, { useEffect, useState } from 'react';
+import { getPublicAnalytics } from '../services/api';
+
+function LandingPage() {
+  const [topBooks, setTopBooks] = useState([]);
+  const [topAuthors, setTopAuthors] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadAnalytics() {
+      try {
+        const data = await getPublicAnalytics();
+        setTopBooks(data.topBooks || []);
+        setTopAuthors(data.topAuthors || []);
+      } catch (error) {
+        console.error('Failed to load analytics:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadAnalytics();
+  }, []);
+
+  if (loading) return <div>Loading...</div>;
+
+  return (
+    <div className="landing-page">
+      <section className="top-books">
+        <h2>🔥 Trending Books</h2>
+        <div className="books-grid">
+          {topBooks.map(book => (
+            <div key={book._id} className="book-card">
+              <img src={book.image} alt={book.title} />
+              <h3>{book.title}</h3>
+              <p className="author">by {book.author.name}</p>
+              <div className="stats">
+                <span>👁️ {book.viewCount.toLocaleString()} views</span>
+                <span>❤️ {book.totalLikes} likes</span>
+                <span>⭐ {book.averageRating} ({book.totalRatings})</span>
+                <span>📥 {book.downloadCount} downloads</span>
+              </div>
+              {book.isPremium && <span className="badge">Premium</span>}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="top-authors">
+        <h2>⭐ Top Authors</h2>
+        <div className="authors-grid">
+          {topAuthors.map(author => (
+            <div key={author.authorId} className="author-card">
+              <img src={author.authorAvatar || '/default-avatar.png'} alt={author.authorName} />
+              <h3>{author.authorName}</h3>
+              <p>{author.bookCount} books published</p>
+              <div className="author-stats">
+                <span>👁️ {author.totalViews.toLocaleString()}</span>
+                <span>❤️ {author.totalLikes.toLocaleString()} total likes</span>
+                <span>⭐ {author.averageRating}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+export default LandingPage;
+```
+
+---
+
+## Analytics & Public Data
+
+### Overview
+
+The analytics endpoint provides valuable insights for your landing page without requiring authentication. This is perfect for showcasing popular content to visitors.
+
+### Key Features
+
+- **No Authentication Required**: Publicly accessible endpoint
+- **Top Books**: Top 5 most viewed published books with comprehensive metrics
+- **Top Authors**: Top 5 authors based on total views across all their books
+- **Rich Metadata**: Includes likes, ratings, downloads, and engagement data
+- **Author Information**: Populated author details with avatar and name
+
+### Implementation Patterns
+
+#### Pattern 1: Hero Section with Top Books
+
+```javascript
+function HeroSection({ topBooks }) {
+  const featuredBook = topBooks[0]; // Display the #1 book prominently
+
+  if (!featuredBook) return null;
+
+  return (
+    <section className="hero">
+      <div className="hero-content">
+        <h1>Discover {featuredBook.title}</h1>
+        <p className="author">by {featuredBook.author.name}</p>
+        <p className="description">{featuredBook.description}</p>
+        <div className="engagement-stats">
+          <div className="stat">
+            <span className="number">{featuredBook.viewCount.toLocaleString()}</span>
+            <span className="label">Readers</span>
+          </div>
+          <div className="stat">
+            <span className="number">{featuredBook.totalLikes}</span>
+            <span className="label">Likes</span>
+          </div>
+          <div className="stat">
+            <span className="number">{featuredBook.averageRating}⭐</span>
+            <span className="label">Rating</span>
+          </div>
+        </div>
+        <button onClick={() => navigate(`/books/${featuredBook._id}`)}>
+          Read Now
+        </button>
+      </div>
+      <div className="hero-image">
+        <img src={featuredBook.image} alt={featuredBook.title} />
+      </div>
+    </section>
+  );
+}
+```
+
+#### Pattern 2: Author Showcase
+
+```javascript
+function AuthorShowcase({ topAuthors }) {
+  return (
+    <section className="authors">
+      <h2>Meet Our Top Authors</h2>
+      <div className="authors-carousel">
+        {topAuthors.map(author => (
+          <div key={author.authorId} className="author-profile">
+            <div className="avatar-wrapper">
+              <img 
+                src={author.authorAvatar || '/default-avatar.png'} 
+                alt={author.authorName}
+                className="avatar"
+              />
+            </div>
+            <h3>{author.authorName}</h3>
+            <div className="author-metrics">
+              <div className="metric">
+                <strong>{author.bookCount}</strong>
+                <span>Books</span>
+              </div>
+              <div className="metric">
+                <strong>{author.totalLikes.toLocaleString()}</strong>
+                <span>Total Likes</span>
+              </div>
+              <div className="metric">
+                <strong>{author.averageRating.toFixed(1)}⭐</strong>
+                <span>Avg Rating</span>
+              </div>
+            </div>
+            <p className="achievement">
+              {author.totalViews.toLocaleString()} total views
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+```
+
+#### Pattern 3: Statistics Dashboard
+
+```javascript
+function PlatformStats({ topBooks, topAuthors }) {
+  // Calculate aggregate statistics
+  const totalViews = topBooks.reduce((sum, book) => sum + book.viewCount, 0);
+  const totalLikes = topBooks.reduce((sum, book) => sum + book.totalLikes, 0);
+  const avgRating = topBooks.reduce((sum, book) => sum + book.averageRating, 0) / topBooks.length;
+
+  return (
+    <section className="platform-stats">
+      <h2>Platform Insights</h2>
+      <div className="stats-grid">
+        <div className="stat-card">
+          <h3>{totalViews.toLocaleString()}</h3>
+          <p>Total Views on Top Books</p>
+        </div>
+        <div className="stat-card">
+          <h3>{totalLikes.toLocaleString()}</h3>
+          <p>Total Likes</p>
+        </div>
+        <div className="stat-card">
+          <h3>{avgRating.toFixed(1)}⭐</h3>
+          <p>Average Rating</p>
+        </div>
+        <div className="stat-card">
+          <h3>{topAuthors.length}</h3>
+          <p>Featured Authors</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+```
+
+### Important Notes
+
+1. **Caching**: Consider caching analytics data for 5-10 minutes to reduce server load
+2. **Error Handling**: Always provide fallback UI if analytics fail to load
+3. **Loading States**: Show skeleton loaders while data is being fetched
+4. **Responsive Design**: Ensure analytics displays work on mobile devices
+5. **SEO**: Use analytics data for meta tags and structured data
 
 ---
 
@@ -1593,14 +2142,86 @@ describe('BookDetailsPage', () => {
 
 ---
 
+## Quick Reference: Key Endpoints
+
+### Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/verify-email` - Verify email with code
+- `POST /api/auth/login` - Login and get tokens
+- `POST /api/auth/refresh-token` - Refresh access token
+- `POST /api/auth/logout` - Logout current session
+
+### Users
+- `GET /api/auth/me` - Get current user
+- `PATCH /api/users/me` - Update profile (including age)
+- `PATCH /api/users/me/profile-image` - Upload profile image
+- `PATCH /api/users/me/cover-image` - Upload cover image
+
+### Books
+- `GET /api/books` - List all books (respects age restrictions + plan-based bookStatus filtering)
+- `GET /api/books/search` - Search and filter books (title, tags, author, genre + auto bookStatus filtering)
+- `GET /api/books/:id` - Get book details (respects age restrictions)
+- `POST /api/books` - Create book (Author/Admin)
+- `PATCH /api/books/:id` - Update book (Author/Admin)
+- `PATCH /api/books/:id/content-type` - Update content type (Author/Admin)
+- `POST /api/books/:id/like` - Like a book
+- `POST /api/books/:id/unlike` - Unlike a book
+
+### Chapters
+- `GET /api/books/:id/chapters` - Get book chapters
+- `GET /api/books/:id/chapters/:number` - Get specific chapter
+- `POST /api/books/:bookId/chapters` - Add chapter (Author/Admin)
+- `PATCH /api/books/:bookId/chapters/:id` - Update chapter (Author/Admin)
+
+### Ratings
+- `POST /api/books/:bookId/rate` - Rate book (1-5 stars)
+- `GET /api/books/:bookId/rating/me` - Get my rating
+- `DELETE /api/books/:bookId/rate` - Delete my rating
+- `GET /api/books/:bookId/ratings` - Get all ratings (public)
+
+### Subscriptions
+- `POST /api/subscriptions/activate` - Activate subscription
+- `GET /api/subscriptions/status` - Get subscription status
+
+### Downloads
+- `GET /api/books/:bookId/download` - Download book as PDF (Premium)
+
+### Analytics
+- `GET /api/analytics/public` - Public analytics (no auth required)
+
+### Admin
+- `GET /api/admin/analytics` - Platform analytics (Admin only)
+- `DELETE /api/admin/books/:id` - Delete any book (Admin only)
+
+---
+
+## Error Codes Quick Reference
+
+| Code | Status | When It Happens | What To Do |
+|------|--------|----------------|------------|
+| `TOKEN_EXPIRED` | 401 | Access token expired | Refresh token automatically |
+| `INVALID_TOKEN` | 401 | Token is invalid | Redirect to login |
+| `EMAIL_NOT_VERIFIED` | 403 | Email not verified | Prompt to verify email |
+| `AGE_NOT_SET` | 403 | User hasn't set age | Redirect to profile to set age |
+| `AGE_RESTRICTED` | 403 | User under 18 accessing adult content | Show age restriction message |
+| `SUBSCRIPTION_REQUIRED` | 403 | Premium feature without subscription | Redirect to subscription page |
+| `BOOK_NOT_FOUND` | 404 | Book doesn't exist | Show 404 page |
+| `INSUFFICIENT_PERMISSIONS` | 403 | User lacks required role | Show unauthorized message |
+
+---
+
 ## Support & Resources
 
 - **API Documentation:** See `API_DOCUMENTATION.md`
 - **Terms & Conditions:** See `TERMS_AND_CONDITIONS.md`
 - **Privacy Policy:** See `PRIVACY_POLICY.md`
+- **README:** See `README.md` for project overview
 
 ---
 
-**Last Updated:** November 20, 2025  
-**Version:** 1.0.0
+**Version:** 1.2.0  
+**Last Updated:** November 23, 2025  
+**For Frontend Developers**
+
+For questions or issues, please refer to the API documentation or contact the backend team.
 

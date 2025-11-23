@@ -73,6 +73,15 @@ export async function getAllBooks({ page, limit, user }) {
   }
   // If user is logged in AND 18+, show all content including adult (no filter added)
 
+  // Filter by bookStatus based on subscription plan
+  // Free and Basic users can only see finished books
+  // Premium users can see both ongoing and finished books (early access)
+  const userPlan = user?.plan || 'free';
+  if (userPlan === 'free' || userPlan === 'basic') {
+    query.bookStatus = 'finished';
+  }
+  // Premium users have no bookStatus filter - they can see all books
+
   const [books, totalItems] = await Promise.all([
     BookModel.find(query)
       .populate('author', 'name avatar')
@@ -237,6 +246,14 @@ export const searchAndFilterBooks = async (searchCriteria, userPlan, options = {
     // Not logged in, only show kids content
     query.contentType = 'kids';
   }
+
+  // Filter by bookStatus based on subscription plan
+  // Free and Basic users can only see finished books
+  // Premium users can see both ongoing and finished books (early access)
+  if (userPlan === 'free' || userPlan === 'basic') {
+    query.bookStatus = 'finished';
+  }
+  // Premium users have no bookStatus filter - they can see all books
 
   // Execute query with pagination
   const [books, totalItems] = await Promise.all([

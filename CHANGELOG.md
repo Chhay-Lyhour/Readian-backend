@@ -7,15 +7,147 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.1.0] - 2025-11-21
+## [1.2.0] - 2025-11-23
 
 ### ✨ Features Added
 
+#### Search and Filter with Book Status Access Control
+- **Universal Search** - All users can search and filter books by:
+  - Title (partial match, case-insensitive)
+  - Tags (partial match, case-insensitive)
+  - Author name (partial match, case-insensitive)
+  - Genre (partial match, case-insensitive)
+  
+- **Book Status Access Tiers** - Automatic filtering based on subscription:
+  - **Free & Basic Users**: Can only see and read **finished/completed** books
+  - **Premium Users**: Can see **ongoing** and **finished** books (early access)
+  - Backend automatically filters based on user's plan
+  
+- **Premium Content Access**:
+  - Both Basic and Premium users can access premium books (isPremium)
+  - Free users cannot access premium books
+  
+- **Smart Backend Filtering**:
+  - No need for frontend to filter by bookStatus
+  - Backend handles it transparently based on user plan
+  - Works on both /api/books and /api/books/search endpoints
+
+---
+
+## [1.1.0] - 2025-11-23
+
+### ✨ Features Added
+
+#### Age-Based Content Filtering System
+- **User Age Field** - Added age field to user model (0-150 years)
+  - Optional field that users can set in their profile
+  - Required for accessing adult content
+  - Validation for reasonable age ranges
+  
+- **Content Type Classification** - Books can be classified as "kids" or "adult"
+  - Kids content (0-17): Accessible to everyone (logged in or not)
+  - Adult content (18+): Requires login and age ≥ 18
+  - Default content type is "kids" for safety
+  
+- **Age Restriction Middleware** - Automatic enforcement across all book endpoints
+  - Applied to book viewing, chapters, ratings, likes, and downloads
+  - Returns appropriate error codes (AGE_NOT_SET, AGE_RESTRICTED)
+  - Protects minors from inappropriate content
+
+- **Content Type Management Endpoint** - `PATCH /api/books/:id/content-type`
+  - Authors can update book content type post-publication
+  - Only book author or admin can change content type
+  - Immediate effect on access control
+
+#### Enhanced Analytics
+- **Public Analytics Endpoint** - `GET /api/analytics/public`
+  - No authentication required - perfect for landing pages
+  - Returns top 5 books and top 5 authors
+  - Includes comprehensive engagement metrics
+  
+- **totalLikes Metric** - Added for both books and authors
+  - Books: Number of users who liked the book
+  - Authors: Combined likes across all author's books
+  - Accurate like counts for better insights
+  
+- **Rich Metadata** - Enhanced analytics response
+  - Book descriptions, images, genres
+  - Author avatars and names
+  - Engagement objects with views, likes, ratings, downloads
+  - Download counts from DownloadModel
+
+#### Subscription System Enhancements
+- **Flexible Duration** - Custom subscription periods
+  - Duration parameter: 1-3650 days (default 30)
+  - Common values: 30 (monthly), 90 (quarterly), 365 (yearly)
+  - Stored in user model as subscriptionDuration
+  
+- **Enhanced Response Data**
+  - Returns subscriptionDuration in days
+  - Returns subscriptionExpiresAt as ISO date
+  - Clear expiration tracking for frontend
+
+#### Download Improvements
+- **Clean PDF Generation** - Improved PDF quality and layout
+  - Removed watermarks for cleaner reading experience
+  - Removed unnecessary footers and extra pages
+  - Better page utilization without wasted space
+  - Content-focused layout for better readability
+
 #### Book Enhancements
-- **Book Descriptions** - Added enticing book descriptions (10-1000 characters) to help readers discover compelling content
+- **Book Descriptions** - Added enticing book descriptions (10-1000 characters)
   - Displayed on book cards and detail pages
   - Optional field with validation
   - Supports rich, engaging text to hook readers
+
+### 🔧 Improvements
+
+#### API Enhancements
+- Updated all book-related endpoints to respect age restrictions
+- Improved error messages for age-restricted content
+- Better error codes for frontend error handling
+
+#### Documentation Updates
+- **API_DOCUMENTATION.md** - Updated to v1.1.0
+  - Added age restriction system section
+  - Updated analytics endpoint response structure
+  - Added subscription duration details
+  - Added content type management endpoint
+  
+- **FRONTEND_INTEGRATION_GUIDE.md** - Complete overhaul to v1.1.0
+  - Added "What's New in v1.1.0" section
+  - Added migration guide from v1.0.0
+  - Added comprehensive analytics integration patterns
+  - Added age verification implementation examples
+  - Added quick reference for key endpoints
+  - Added error codes quick reference table
+  - Updated subscription examples with duration
+  - Added content type management examples
+
+- **README.md** - Updated feature list
+  - Added age restriction system features
+  - Updated analytics capabilities
+  - Added subscription duration control
+
+- **DOCUMENTATION_INDEX.md** - Updated to v1.1.0
+  - Added recent updates section
+  - Updated all documentation references
+
+### 🐛 Bug Fixes
+- Fixed rating system to work properly with age restrictions
+- Fixed download feature to respect author permissions
+- Improved PDF generation reliability
+
+### 🔒 Security
+- Enhanced age verification for adult content
+- Proper access control for sensitive content
+- Age-based filtering at middleware level
+
+### 📝 Developer Experience
+- Added comprehensive code examples for age guards
+- Added analytics integration patterns
+- Added quick reference guides
+- Improved error handling examples
 
 ---
 

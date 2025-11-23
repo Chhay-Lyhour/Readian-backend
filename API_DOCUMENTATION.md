@@ -1,8 +1,8 @@
 # Readian API Documentation
 
-**Version:** 1.0.0  
+**Version:** 1.2.0  
 **Base URL:** `http://localhost:5001/api` (Development)  
-**Last Updated:** November 20, 2025
+**Last Updated:** November 23, 2025
 
 ---
 
@@ -41,6 +41,10 @@ Readian is a digital book reading and publishing platform API that allows users 
 - **Role-based access control** (Reader, Author, Admin)
 - **Email verification** for new accounts
 - **Subscription system** (Free, Basic, Premium)
+  - Free/Basic: Access finished books only
+  - Premium: Early access to ongoing books + premium content
+- **Search and Filter** by title, tags, author, genre (all plans)
+- **Book Status Access Control** (ongoing vs finished)
 - **Age-based content filtering** (Kids: 0-17, Adult: 18+)
 - **File upload** to Cloudinary for images
 - **PDF generation** for book downloads
@@ -910,7 +914,7 @@ Authorization: Bearer <access_token>
 
 #### 1. Get All Books
 
-Get list of published books with pagination. Automatically filters based on user age.
+Get list of published books with pagination. Automatically filters based on user age and subscription plan.
 
 ```http
 GET /api/books?page=1&limit=10
@@ -919,6 +923,10 @@ GET /api/books?page=1&limit=10
 **Query Parameters:**
 - `page` (optional): Page number (default: 1)
 - `limit` (optional): Items per page (default: 10, max: 100)
+
+**Automatic Filtering:**
+- **Age-based**: Users under 18 see only kids content
+- **Plan-based**: Free/Basic users see only finished books, Premium users see all books
 
 **Response (200):**
 ```json
@@ -961,20 +969,19 @@ GET /api/books?page=1&limit=10
 }
 ```
 
-#### 2. Search Books
+#### 2. Search and Filter Books
 
-Search and filter books (genre, tags, sorting requires Premium subscription).
+Search and filter books by title, tags, author name, and genre. **Book status access is automatically filtered based on subscription plan.**
 
 ```http
-GET /api/books/search?title=adventure&page=1&limit=10
+GET /api/books/search?title=adventure&genre=fiction&page=1&limit=10
 ```
 
 **Query Parameters:**
-- `title` (optional): Search by title (partial match)
-- `author` (optional): Search by author name (partial match)
-- `genre` (optional, Premium): Filter by genre
-- `tags` (optional, Premium): Filter by tags
-- `sortByLikes` (optional, Premium): Sort by likes (`asc` or `desc`)
+- `title` (optional): Search by title (partial match, case-insensitive)
+- `author` (optional): Search by author name (partial match, case-insensitive)
+- `genre` (optional): Filter by genre (partial match, case-insensitive)
+- `tags` (optional): Filter by tags (partial match, case-insensitive)
 - `page` (optional): Page number (default: 1)
 - `limit` (optional): Items per page (default: 10, max: 100)
 
@@ -984,7 +991,34 @@ GET /api/books/search?title=adventure&page=1&limit=10
   "success": true,
   "message": "Books retrieved successfully.",
   "data": {
-    "books": [...],
+    "books": [
+      {
+        "_id": "book_id_1",
+        "title": "Amazing Adventure",
+        "author": {
+          "_id": "author_id",
+          "name": "Jane Author",
+          "email": "jane@example.com",
+          "avatar": "https://res.cloudinary.com/.../avatar.jpg"
+        },
+        "image": "https://res.cloudinary.com/.../cover.jpg",
+        "genre": "Adventure Fiction",
+        "tags": "action, fantasy, adventure",
+        "description": "An unforgettable journey...",
+        "status": "published",
+        "bookStatus": "finished",
+        "isPremium": false,
+        "contentType": "kids",
+        "averageRating": 4.5,
+        "totalRatings": 120,
+        "likes": 450,
+        "viewCount": 2500,
+        "downloadCount": 50,
+        "readingTime": "4 hours 30 minutes",
+        "totalChapters": 15,
+        "publishedDate": "2025-10-01T00:00:00.000Z"
+      }
+    ],
     "pagination": {
       "currentPage": 1,
       "totalPages": 5,
@@ -995,7 +1029,46 @@ GET /api/books/search?title=adventure&page=1&limit=10
 }
 ```
 
-**Note:** Genre, tags filtering, and sorting by likes require Premium subscription.
+**Search Capabilities by Plan:**
+
+| Feature | Free | Basic | Premium |
+|---------|------|-------|---------|
+| Search by title | ✅ | ✅ | ✅ |
+| Search by tags | ✅ | ✅ | ✅ |
+| Search by author | ✅ | ✅ | ✅ |
+| Search by genre | ✅ | ✅ | ✅ |
+| See finished books | ✅ | ✅ | ✅ |
+| See ongoing books (early access) | ❌ | ❌ | ✅ |
+| Access premium books | ❌ | ✅ | ✅ |
+
+**Book Status Access Rules:**
+- **Free & Basic Users**: Backend automatically filters to show only **finished/completed** books
+- **Premium Users**: Can see both **ongoing** and **finished** books (early access to incomplete books)
+- **Automatic Filtering**: No need to specify bookStatus in query - backend handles it based on user's plan
+- **Premium Content**: Both Basic and Premium users can access books marked as premium (isPremium)
+
+**Example Use Cases:**
+
+1. Search for fantasy books:
+```
+GET /api/books/search?genre=fantasy&page=1&limit=20
+```
+
+2. Search by author name:
+```
+GET /api/books/search?author=Jane%20Smith
+```
+
+3. Search by title and tags:
+```
+GET /api/books/search?title=dragon&tags=adventure
+```
+
+**Notes:**
+- All searches respect age restrictions (adult content requires login + age ≥ 18)
+- Free/Basic users will only see finished books in search results
+- Premium users see both ongoing and finished books
+- Search is case-insensitive and supports partial matching
 
 #### 3. Get Book by ID
 
@@ -1791,7 +1864,12 @@ Authorization: Bearer <access_token>
 - `basic`: Basic plan ($4.99/month)
 - `premium`: Premium plan ($9.99/month)
 
-**Duration:** Number of days (e.g., 30, 90, 365)
+**Duration:**
+- Number of days for the subscription period
+- Minimum: 1 day
+- Maximum: 3650 days (10 years)
+- Default: 30 days (if not specified)
+- Common values: 30 (monthly), 90 (quarterly), 365 (yearly)
 
 **Response (200):**
 ```json
@@ -1801,9 +1879,35 @@ Authorization: Bearer <access_token>
   "data": {
     "plan": "premium",
     "subscriptionStatus": "active",
-    "subscriptionExpiresAt": "2025-12-20T17:30:00.000Z",
+    "subscriptionExpiresAt": "2025-12-23T17:30:00.000Z",
     "subscriptionDuration": 30
   }
+}
+```
+
+**Example Usage:**
+
+Monthly subscription:
+```json
+{
+  "plan": "premium",
+  "duration": 30
+}
+```
+
+Quarterly subscription:
+```json
+{
+  "plan": "premium",
+  "duration": 90
+}
+```
+
+Yearly subscription:
+```json
+{
+  "plan": "premium",
+  "duration": 365
 }
 ```
 
@@ -1995,39 +2099,72 @@ GET /api/analytics/public
   "success": true,
   "message": "Public analytics retrieved successfully.",
   "data": {
-    "totalBooks": 1250,
-    "totalAuthors": 342,
-    "totalReaders": 5420,
     "topBooks": [
       {
         "_id": "book_id_1",
         "title": "Most Popular Book",
+        "description": "An engaging story that captivates readers...",
         "author": {
           "_id": "author_id",
           "name": "Famous Author",
           "avatar": "https://res.cloudinary.com/.../avatar.jpg"
         },
         "image": "https://res.cloudinary.com/.../cover.jpg",
+        "genre": "Fiction",
+        "isPremium": false,
+        "publishedDate": "2025-01-15T00:00:00.000Z",
         "viewCount": 15000,
-        "likes": 2500,
         "totalLikes": 2500,
         "averageRating": 4.8,
-        "totalRatings": 450
+        "totalRatings": 450,
+        "downloadCount": 380,
+        "engagement": {
+          "views": 15000,
+          "likes": 2500,
+          "ratings": 450,
+          "downloads": 380
+        }
       }
     ],
     "topAuthors": [
       {
-        "_id": "author_id",
-        "name": "Top Author",
-        "avatar": "https://res.cloudinary.com/.../avatar.jpg",
-        "totalBooks": 25,
+        "authorId": "author_id",
+        "authorName": "Top Author",
+        "authorEmail": "author@example.com",
+        "authorAvatar": "https://res.cloudinary.com/.../avatar.jpg",
         "totalViews": 45000,
-        "totalLikes": 8500
+        "totalLikes": 8500,
+        "totalRatings": 1200,
+        "totalDownloads": 3400,
+        "averageRating": 4.6,
+        "bookCount": 25,
+        "engagement": {
+          "views": 45000,
+          "likes": 8500,
+          "ratings": 1200,
+          "downloads": 3400
+        }
       }
     ]
   }
 }
 ```
+
+**Key Metrics Explained:**
+
+For **Top Books**:
+- `totalLikes`: Number of users who liked this book
+- `viewCount`: Total number of views
+- `averageRating`: Average rating (1-5 stars)
+- `totalRatings`: Number of ratings received
+- `downloadCount`: Number of times downloaded
+
+For **Top Authors**:
+- `totalLikes`: Combined likes across all author's books
+- `totalViews`: Combined views across all author's books
+- `averageRating`: Average rating across all author's books
+- `bookCount`: Number of published books
+- `totalDownloads`: Combined downloads across all books
 
 ---
 

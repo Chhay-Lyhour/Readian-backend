@@ -66,7 +66,9 @@ To become the leading digital book platform that empowers independent authors an
 ### For Readers
 
 - 📚 **Browse & Discover** - Explore thousands of books across various genres
-- 🔍 **Advanced Search** - Search by title, author, genre, and tags
+- 🔍 **Advanced Search & Filter** - Search by title, author, genre, and tags (all plans)
+- 🚀 **Early Access** - Premium users get access to ongoing books
+- 📖 **Book Status Filtering** - Free/Basic see finished books, Premium see all
 - ⭐ **Rate Books** - Rate books with 1-5 stars
 - ❤️ **Like & Bookmark** - Save your favorite books for later
 - 📥 **Download as PDF** - Download books for offline reading (Premium)
@@ -518,11 +520,25 @@ PATCH /api/books/book123/content-type
 
 | Tier | Price | Duration | Features |
 |------|-------|----------|----------|
-| **Free** | $0 | Unlimited | - Browse kids books<br>- Read free books<br>- Basic profile |
-| **Basic** | $4.99 | 30/90/365 days | - All Free features<br>- Read premium books<br>- Download up to 10 books/month<br>- Ad-free experience |
-| **Premium** | $9.99 | 30/90/365 days | - All Basic features<br>- Unlimited downloads<br>- Advanced search<br>- Early access to new books<br>- Priority support |
+| **Free** | $0 | Unlimited | - Browse & search all books<br>- Read **finished** free books only<br>- Basic profile<br>- Like and rate books |
+| **Basic** | $4.99 | 30/90/365 days | - All Free features<br>- Access to **premium** books<br>- Read **finished** books only<br>- Download premium books<br>- Ad-free experience |
+| **Premium** | $9.99 | 30/90/365 days | - All Basic features<br>- **Early access to ongoing books**<br>- Unlimited downloads<br>- Advanced search & filters<br>- Priority support |
 
 **Note:** Subscription duration is flexible and can be set when activating a subscription (default: 30 days).
+
+### Book Access Summary
+
+| Book Type | Free | Basic | Premium |
+|-----------|------|-------|---------|
+| Finished Free Books | ✅ | ✅ | ✅ |
+| Finished Premium Books | ❌ | ✅ | ✅ |
+| Ongoing Free Books | ❌ | ❌ | ✅ |
+| Ongoing Premium Books | ❌ | ❌ | ✅ |
+
+**Key Differences:**
+- **Book Status**: "Finished" = completed books, "Ongoing" = books still being written
+- **Free & Basic**: Can only read finished/completed books
+- **Premium**: Early access to ongoing books as chapters are released
 
 ### Current Implementation Status
 
@@ -532,26 +548,51 @@ PATCH /api/books/book123/content-type
 
 ```javascript
 // Free Tier
+- Search & filter books (title, tags, author, genre)
 - Browse and read kids books (no age restriction required)
 - Browse free adult books (requires age 18+)
+- Read FINISHED free books only
 - Basic profile customization
 - Like and rate books
 
-// Basic Tier ($4.99/month)
+// Basic Tier ($4.99/month or custom duration)
 - All Free tier features
-- Access to premium books
-- Download books as PDF (10/month limit)
+- Access to premium books (isPremium)
+- Read FINISHED premium books
+- Cannot access ongoing books (must wait for completion)
+- Download premium books as PDF
 - Ad-free experience
 - Enhanced profile features
 
-// Premium Tier ($9.99/month)
+// Premium Tier ($9.99/month or custom duration)
 - All Basic tier features
+- EARLY ACCESS to ongoing books (before completion)
+- Read chapters as they're released
 - Unlimited PDF downloads
 - Advanced search and filters
-- Early access to new releases
 - Priority customer support
 - Special badge on profile
 ```
+
+### How Book Status Works
+
+1. **Ongoing Books** 📝
+   - Books currently being written
+   - Authors add chapters over time
+   - Only Premium users can access
+   - Great for serialized content
+
+2. **Finished Books** ✅
+   - Completed books with all chapters
+   - Available to Free, Basic, and Premium users
+   - Full story available immediately
+
+**Example Scenario:**
+- Author publishes Chapter 1-5 of an ongoing book
+- Premium users can read Chapters 1-5 immediately
+- Free/Basic users cannot access the book yet
+- Author completes the book (marks as "finished")
+- Now Free/Basic users can read the complete book
 
 ---
 
