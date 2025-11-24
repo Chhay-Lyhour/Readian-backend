@@ -31,6 +31,7 @@ export async function findUserById(userId, populate = null) {
  */
 export async function updateUserById(userId, updateData) {
   // { new: true } returns the updated document
+  console.log("Updating user:", userId, "with data:", updateData);
   return User.findByIdAndUpdate(userId, updateData, { new: true }).select(
     "-password"
   );

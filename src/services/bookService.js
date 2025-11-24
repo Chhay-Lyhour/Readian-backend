@@ -216,7 +216,6 @@ export const searchAndFilterBooks = async (searchCriteria, userPlan, options = {
   // Search by author name
   if (searchCriteria.author) {
     // First find users matching the author name
-    const User = (await import("../models/userModel.js")).default;
     const authors = await User.find({
       name: { $regex: searchCriteria.author, $options: 'i' }
     }).select('_id');
@@ -237,15 +236,17 @@ export const searchAndFilterBooks = async (searchCriteria, userPlan, options = {
     }
   }
 
-  // Filter by content type based on user age
-  if (user && user.age) {
-    if (user.age < 18) {
-      query.contentType = 'kids';
-    }
-  } else {
-    // Not logged in, only show kids content
-    query.contentType = 'kids';
+  // Apply age-based content filtering (same logic as getAllBooks)
+  // Only filter out adult content if user is not logged in OR is under 18
+  if (!user || !user.age || user.age < 18) {
+    // Exclude adult content - show kids, teen, and books without contentType (null or missing field)
+    query.$or = [
+      { contentType: { $in: ["kids", "teen"] } },
+      { contentType: null },
+      { contentType: { $exists: false } }
+    ];
   }
+  // If user is logged in AND 18+, show all content including adult (no filter added)
 
   // Filter by bookStatus based on subscription plan
   // Free and Basic users can only see finished books
