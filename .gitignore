@@ -60,3 +60,4 @@ pids
 # Mac settings
 .AppleDouble
 .LSOverride
+.vercel

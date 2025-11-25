@@ -11,7 +11,7 @@ export async function getPublicAnalytics() {
       .sort({ viewCount: -1 })
       .limit(5)
       .select("title viewCount likes likedBy author image genre isPremium publishedDate averageRating totalRatings downloadCount description")
-      .populate("author", "name avatar email")
+      .populate("author", "name avatar email bio")
       .lean()
       .then(async books => {
         // Get download counts for each book
@@ -39,6 +39,8 @@ export async function getPublicAnalytics() {
             _id: book.author._id,
             name: book.author.name,
             avatar: book.author.avatar,
+            email: book.author.email,
+            bio: book.author.bio || '',
           },
           image: book.image,
           genre: book.genre,

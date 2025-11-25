@@ -14,7 +14,7 @@ const userSchema = new Schema(
       trim: true,
     },
     password: { type: String, required: true, select: false }, // Hide by default
-    role: { type: String, enum: UserRole, default: "AUTHOR" },
+    role: { type: String, enum: UserRole, default: "READER" },
     email_verified: { type: Boolean, default: false },
     last_login: { type: Date, default: null },
 

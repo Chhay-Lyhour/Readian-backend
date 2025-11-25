@@ -76,4 +76,12 @@ app.get("/", (req, res) => {
 app.use(notFoundHandler);
 app.use(errorHandler);
 
+// For Vercel serverless deployment
+if (process.env.VERCEL === '1') {
+  // Ensure DB connection for serverless
+  import('./config/db.js').then(({ connectDB }) => {
+    connectDB().catch(err => console.error('DB connection error:', err));
+  });
+}
+
 export default app;
