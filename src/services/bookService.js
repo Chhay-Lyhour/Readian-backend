@@ -301,7 +301,7 @@ export const getBookById = async (
 ) => {
   // Step 1: Find the book first and populate author details.
   const book = await BookModel.findById(bookId)
-    .populate('author', 'name email avatar')
+    .populate('author', 'name email avatar bio')
     .lean();
 
   // Step 2: If no book is found, exit immediately.
