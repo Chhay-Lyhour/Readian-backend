@@ -124,6 +124,7 @@ router.post("/:id/unlike", requireAuth, likeController.unlikeBook);
 router.get(
   "/:id/chapters",
   softAuth,
+  checkAgeRestriction,
   validateRequestQuery(chapterPaginationQuerySchema),
   controller.getBookChapters
 );
@@ -132,6 +133,7 @@ router.get(
 router.get(
   "/:id/chapters/:chapterNumber",
   softAuth,
+  checkAgeRestriction,
   controller.getChapterByNumber
 );
 
