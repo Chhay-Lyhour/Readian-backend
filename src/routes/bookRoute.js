@@ -54,7 +54,6 @@ router.get(
 router.get(
   "/:id",
   softAuth,
-  checkAgeRestriction,
   validateRequestQuery(chapterPaginationQuerySchema),
   controller.getBookById
 );
@@ -117,15 +116,14 @@ router.patch(
 );
 
 // --- Like/Unlike Routes ---
-router.post("/:id/like", requireAuth, checkAgeRestriction, likeController.likeBook);
-router.post("/:id/unlike", requireAuth, checkAgeRestriction, likeController.unlikeBook);
+router.post("/:id/like", requireAuth, likeController.likeBook);
+router.post("/:id/unlike", requireAuth, likeController.unlikeBook);
 
 // --- Chapter Routes ---
 // Get all chapters for a book
 router.get(
   "/:id/chapters",
   softAuth,
-  checkAgeRestriction,
   validateRequestQuery(chapterPaginationQuerySchema),
   controller.getBookChapters
 );
@@ -134,7 +132,6 @@ router.get(
 router.get(
   "/:id/chapters/:chapterNumber",
   softAuth,
-  checkAgeRestriction,
   controller.getChapterByNumber
 );
 

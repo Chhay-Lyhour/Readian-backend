@@ -89,6 +89,18 @@ const ERROR_MAP = {
     statusCode: 500,
     message: "Cloud storage is not configured. Please contact support.",
   },
+  AGE_RESTRICTED: {
+    statusCode: 403,
+    message: "You must be 18 years or older to access adult content.",
+  },
+  AGE_NOT_SET: {
+    statusCode: 403,
+    message: "Please set your age in your profile to access this content.",
+  },
+  AUTHENTICATION_REQUIRED: {
+    statusCode: 401,
+    message: "You must be logged in to access this content.",
+  },
 };
 
 class AppError extends Error {

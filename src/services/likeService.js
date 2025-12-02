@@ -22,6 +22,16 @@ export async function likeBook(userId, bookId) {
       throw new AppError("USER_NOT_FOUND", "User not found.");
     }
 
+    // Age restriction check for adult content
+    if (book.contentType === "adult") {
+      if (!user.age && user.age !== 0) {
+        throw new AppError("AGE_NOT_SET", "Please set your age in your profile to like this content.");
+      }
+      if (user.age < 18) {
+        throw new AppError("AGE_RESTRICTED", "You must be 18 years or older to like adult content.");
+      }
+    }
+
     // Convert userId to ObjectId for proper comparison
     const userIdObjectId = new mongoose.Types.ObjectId(userId);
     const bookIdObjectId = new mongoose.Types.ObjectId(bookId);
@@ -68,6 +78,16 @@ export async function unlikeBook(userId, bookId) {
     const user = await UserModel.findById(userId).session(session);
     if (!user) {
       throw new AppError("USER_NOT_FOUND", "User not found.");
+    }
+
+    // Age restriction check for adult content
+    if (book.contentType === "adult") {
+      if (!user.age && user.age !== 0) {
+        throw new AppError("AGE_NOT_SET", "Please set your age in your profile to unlike this content.");
+      }
+      if (user.age < 18) {
+        throw new AppError("AGE_RESTRICTED", "You must be 18 years or older to unlike adult content.");
+      }
     }
 
     // Convert userId to ObjectId for proper comparison

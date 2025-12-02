@@ -290,7 +290,7 @@ export const searchAndFilterBooks = async (searchCriteria, userPlan, options = {
 
 /**
  * Retrieves a single book by its ID.
- * Enforces subscription check for premium books.
+ * Returns access restriction information instead of throwing errors for better UX.
  * @param {string} bookId - The ID of the book.
  * @param {object} [tokenUser] - The authenticated user object from the JWT (optional).
  */
@@ -309,12 +309,13 @@ export const getBookById = async (
     throw new AppError("BOOK_NOT_FOUND");
   }
 
+  // Helper to check if user is author or admin
+  const isAuthor = tokenUser && book.author && book.author._id && book.author._id.toString() === tokenUser.id;
+  const isAdmin = tokenUser && tokenUser.role === "ADMIN";
+
   // --- DRAFT VISIBILITY CHECK ---
   // Step 3: If the book is a draft, only its author or an admin can see it.
   if (book.status === "draft") {
-    const isAuthor = tokenUser && book.author.toString() === tokenUser.id;
-    const isAdmin = tokenUser && tokenUser.role === "ADMIN";
-
     if (!isAuthor && !isAdmin) {
       throw new AppError("BOOK_NOT_FOUND");
     }
@@ -324,56 +325,121 @@ export const getBookById = async (
   // We can do this in the background as it doesn't need to block the response.
   BookModel.findByIdAndUpdate(bookId, { $inc: { viewCount: 1 } }).exec();
 
-  // --- PREMIUM CONTENT CHECK ---
-  if (book.isPremium) {
-    if (!tokenUser || !tokenUser.id) {
-      throw new AppError("SUBSCRIPTION_REQUIRED");
-    }
+  // Initialize access control object
+  const accessControl = {
+    canViewBook: true,
+    canReadChapters: true,
+    restrictions: []
+  };
 
-    const dbUser = await User.findById(tokenUser.id);
-    if (!dbUser) {
-      throw new AppError("USER_NOT_FOUND");
-    }
+  // --- AGE RESTRICTION CHECK ---
+  if (book.contentType === "adult") {
+    // Authors and admins bypass age restrictions
+    if (!isAuthor && !isAdmin) {
+      const userAge = tokenUser?.age;
 
-    // Allow the author to view their own premium book and admins to view all
-    const isBookAuthor = book.author.toString() === tokenUser.id;
-    const isAdmin = tokenUser.role === "ADMIN";
-
-    if (!isBookAuthor && !isAdmin) {
-      // Check and handle expired subscriptions (auto-downgrade to free)
-      await checkAndHandleExpiredSubscription(dbUser);
-
-      const isSubscriptionActive =
-        dbUser.subscriptionStatus === "active" &&
-        dbUser.subscriptionExpiresAt &&
-        new Date() < new Date(dbUser.subscriptionExpiresAt);
-
-      if (!isSubscriptionActive) {
-        throw new AppError("SUBSCRIPTION_REQUIRED");
+      if (!tokenUser) {
+        accessControl.canReadChapters = false;
+        accessControl.restrictions.push({
+          type: "age",
+          reason: "You must be logged in to access adult content.",
+          requiresLogin: true
+        });
+      } else if (!userAge && userAge !== 0) {
+        accessControl.canReadChapters = false;
+        accessControl.restrictions.push({
+          type: "age",
+          reason: "Please set your age in your profile to access this content.",
+          requiresAge: true
+        });
+      } else if (userAge < 18) {
+        accessControl.canReadChapters = false;
+        accessControl.restrictions.push({
+          type: "age",
+          reason: "You must be 18 years or older to access adult content.",
+          currentAge: userAge,
+          requiredAge: 18
+        });
       }
     }
   }
 
-  // --- FETCH CHAPTERS AND TABLE OF CONTENTS ---
-  const skip = (chapterPage - 1) * chapterLimit;
+  // --- PREMIUM CONTENT CHECK ---
+  if (book.isPremium) {
+    // Authors and admins bypass subscription requirements
+    if (!isAuthor && !isAdmin) {
+      if (!tokenUser || !tokenUser.id) {
+        accessControl.canReadChapters = false;
+        accessControl.restrictions.push({
+          type: "subscription",
+          reason: "This content requires an active subscription. Please log in and subscribe.",
+          requiresLogin: true,
+          requiresSubscription: true
+        });
+      } else {
+        const dbUser = await User.findById(tokenUser.id);
+        if (dbUser) {
+          // Check and handle expired subscriptions (auto-downgrade to free)
+          await checkAndHandleExpiredSubscription(dbUser);
 
-  const [chapters, totalChapters, tableOfContents] = await Promise.all([
-    ChapterModel.find({ book: bookId })
-      .sort({ chapterNumber: 1 })
-      .skip(skip)
-      .limit(chapterLimit)
-      .lean(),
-    ChapterModel.countDocuments({ book: bookId }),
-    ChapterModel.find({ book: bookId })
-      .sort({ chapterNumber: 1 })
-      .select("title")
-      .lean(),
-  ]);
+          const isSubscriptionActive =
+            dbUser.subscriptionStatus === "active" &&
+            dbUser.subscriptionExpiresAt &&
+            new Date() < new Date(dbUser.subscriptionExpiresAt);
+
+          if (!isSubscriptionActive) {
+            accessControl.canReadChapters = false;
+            accessControl.restrictions.push({
+              type: "subscription",
+              reason: "This content requires an active subscription. Please subscribe to continue reading.",
+              requiresSubscription: true,
+              currentPlan: dbUser.plan || "free"
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // --- FETCH CHAPTERS AND TABLE OF CONTENTS (if access is granted) ---
+  let chapters = [];
+  let totalChapters = 0;
+  let tableOfContents = [];
+
+  if (accessControl.canReadChapters) {
+    const skip = (chapterPage - 1) * chapterLimit;
+
+    [chapters, totalChapters, tableOfContents] = await Promise.all([
+      ChapterModel.find({ book: bookId })
+        .sort({ chapterNumber: 1 })
+        .skip(skip)
+        .limit(chapterLimit)
+        .lean(),
+      ChapterModel.countDocuments({ book: bookId }),
+      ChapterModel.find({ book: bookId })
+        .sort({ chapterNumber: 1 })
+        .select("title")
+        .lean(),
+    ]);
+  } else {
+    // Still get basic chapter info (titles and count) for table of contents
+    [totalChapters, tableOfContents] = await Promise.all([
+      ChapterModel.countDocuments({ book: bookId }),
+      ChapterModel.find({ book: bookId })
+        .sort({ chapterNumber: 1 })
+        .select("title chapterNumber")
+        .lean(),
+    ]);
+  }
 
   return {
     ...book,
+    accessControl,
     chapters,
-    tableOfContents: tableOfContents.map((c) => c.title),
+    tableOfContents: tableOfContents.map((c) => ({
+      chapterNumber: c.chapterNumber,
+      title: c.title
+    })),
     chapterPagination: {
       totalPages: Math.ceil(totalChapters / chapterLimit),
       currentPage: chapterPage,
@@ -578,7 +644,7 @@ export async function updateContentType(bookId, contentType, authorId) {
 
 /**
  * Retrieves all chapters for a book with pagination.
- * Enforces subscription check for premium books.
+ * Returns access restriction information instead of throwing errors for better UX.
  * @param {string} bookId - The ID of the book.
  * @param {object} [tokenUser] - The authenticated user object from the JWT (optional).
  * @param {object} options - Pagination options.
@@ -592,62 +658,118 @@ export async function getBookChapters(bookId, tokenUser, { chapterPage = 1, chap
     throw new AppError("BOOK_NOT_FOUND");
   }
 
+  // Helper to check if user is author or admin
+  const isAuthor = tokenUser && book.author && book.author.toString() === tokenUser.id;
+  const isAdmin = tokenUser && tokenUser.role === "ADMIN";
+
   // --- DRAFT VISIBILITY CHECK ---
   // Step 3: If the book is a draft, only its author or an admin can see it.
   if (book.status === "draft") {
-    const isAuthor = tokenUser && book.author.toString() === tokenUser.id;
-    const isAdmin = tokenUser && tokenUser.role === "ADMIN";
-
     if (!isAuthor && !isAdmin) {
       throw new AppError("BOOK_NOT_FOUND");
     }
   }
 
+  // Initialize access control object
+  const accessControl = {
+    canViewBook: true,
+    canReadChapters: true,
+    restrictions: []
+  };
+
+  // --- AGE RESTRICTION CHECK ---
+  if (book.contentType === "adult") {
+    // Authors and admins bypass age restrictions
+    if (!isAuthor && !isAdmin) {
+      const userAge = tokenUser?.age;
+
+      if (!tokenUser) {
+        accessControl.canReadChapters = false;
+        accessControl.restrictions.push({
+          type: "age",
+          reason: "You must be logged in to access adult content.",
+          requiresLogin: true
+        });
+      } else if (!userAge && userAge !== 0) {
+        accessControl.canReadChapters = false;
+        accessControl.restrictions.push({
+          type: "age",
+          reason: "Please set your age in your profile to access this content.",
+          requiresAge: true
+        });
+      } else if (userAge < 18) {
+        accessControl.canReadChapters = false;
+        accessControl.restrictions.push({
+          type: "age",
+          reason: "You must be 18 years or older to access adult content.",
+          currentAge: userAge,
+          requiredAge: 18
+        });
+      }
+    }
+  }
+
   // --- PREMIUM CONTENT CHECK ---
   if (book.isPremium) {
-    if (!tokenUser || !tokenUser.id) {
-      throw new AppError("SUBSCRIPTION_REQUIRED");
-    }
+    // Authors and admins bypass subscription requirements
+    if (!isAuthor && !isAdmin) {
+      if (!tokenUser || !tokenUser.id) {
+        accessControl.canReadChapters = false;
+        accessControl.restrictions.push({
+          type: "subscription",
+          reason: "This content requires an active subscription. Please log in and subscribe.",
+          requiresLogin: true,
+          requiresSubscription: true
+        });
+      } else {
+        const dbUser = await User.findById(tokenUser.id);
+        if (dbUser) {
+          // Check and handle expired subscriptions (auto-downgrade to free)
+          await checkAndHandleExpiredSubscription(dbUser);
 
-    const dbUser = await User.findById(tokenUser.id);
-    if (!dbUser) {
-      throw new AppError("USER_NOT_FOUND");
-    }
+          const isSubscriptionActive =
+            dbUser.subscriptionStatus === "active" &&
+            dbUser.subscriptionExpiresAt &&
+            new Date() < new Date(dbUser.subscriptionExpiresAt);
 
-    // Allow the author to view their own premium book and admins to view all
-    const isBookAuthor = book.author.toString() === tokenUser.id;
-    const isAdmin = tokenUser.role === "ADMIN";
-
-    if (!isBookAuthor && !isAdmin) {
-      // Check and handle expired subscriptions (auto-downgrade to free)
-      await checkAndHandleExpiredSubscription(dbUser);
-
-      const isSubscriptionActive =
-        dbUser.subscriptionStatus === "active" &&
-        dbUser.subscriptionExpiresAt &&
-        new Date() < new Date(dbUser.subscriptionExpiresAt);
-
-      if (!isSubscriptionActive) {
-        throw new AppError("SUBSCRIPTION_REQUIRED");
+          if (!isSubscriptionActive) {
+            accessControl.canReadChapters = false;
+            accessControl.restrictions.push({
+              type: "subscription",
+              reason: "This content requires an active subscription. Please subscribe to continue reading.",
+              requiresSubscription: true,
+              currentPlan: dbUser.plan || "free"
+            });
+          }
+        }
       }
     }
   }
 
   // --- FETCH CHAPTERS ---
-  const skip = (chapterPage - 1) * chapterLimit;
+  let chapters = [];
+  let totalChapters = 0;
 
-  const [chapters, totalChapters] = await Promise.all([
-    ChapterModel.find({ book: bookId })
-      .sort({ chapterNumber: 1 })
-      .skip(skip)
-      .limit(chapterLimit)
-      .lean(),
-    ChapterModel.countDocuments({ book: bookId }),
-  ]);
+  if (accessControl.canReadChapters) {
+    const skip = (chapterPage - 1) * chapterLimit;
+
+    [chapters, totalChapters] = await Promise.all([
+      ChapterModel.find({ book: bookId })
+        .sort({ chapterNumber: 1 })
+        .skip(skip)
+        .limit(chapterLimit)
+        .lean(),
+      ChapterModel.countDocuments({ book: bookId }),
+    ]);
+  } else {
+    // Still get chapter count for pagination info
+    totalChapters = await ChapterModel.countDocuments({ book: bookId });
+  }
 
   return {
     bookId: book._id,
     bookTitle: book.title,
+    accessControl,
     chapters,
     pagination: {
       totalPages: Math.ceil(totalChapters / chapterLimit),
@@ -659,7 +781,7 @@ export async function getBookChapters(bookId, tokenUser, { chapterPage = 1, chap
 
 /**
  * Retrieves a specific chapter by its chapter number.
- * Enforces subscription check for premium books.
+ * Returns access restriction information instead of throwing errors for better UX.
  * @param {string} bookId - The ID of the book.
  * @param {number} chapterNumber - The chapter number to retrieve.
  * @param {object} [tokenUser] - The authenticated user object from the JWT (optional).
@@ -673,67 +795,144 @@ export async function getChapterByNumber(bookId, chapterNumber, tokenUser) {
     throw new AppError("BOOK_NOT_FOUND");
   }
 
+  // Helper to check if user is author or admin
+  const isAuthor = tokenUser && book.author && book.author.toString() === tokenUser.id;
+  const isAdmin = tokenUser && tokenUser.role === "ADMIN";
+
   // --- DRAFT VISIBILITY CHECK ---
   // Step 3: If the book is a draft, only its author or an admin can see it.
   if (book.status === "draft") {
-    const isAuthor = tokenUser && book.author.toString() === tokenUser.id;
-    const isAdmin = tokenUser && tokenUser.role === "ADMIN";
-
     if (!isAuthor && !isAdmin) {
       throw new AppError("BOOK_NOT_FOUND");
     }
   }
 
+  // Initialize access control object
+  const accessControl = {
+    canViewBook: true,
+    canReadChapters: true,
+    restrictions: []
+  };
+
+  // --- AGE RESTRICTION CHECK ---
+  if (book.contentType === "adult") {
+    // Authors and admins bypass age restrictions
+    if (!isAuthor && !isAdmin) {
+      const userAge = tokenUser?.age;
+
+      if (!tokenUser) {
+        accessControl.canReadChapters = false;
+        accessControl.restrictions.push({
+          type: "age",
+          reason: "You must be logged in to access adult content.",
+          requiresLogin: true
+        });
+      } else if (!userAge && userAge !== 0) {
+        accessControl.canReadChapters = false;
+        accessControl.restrictions.push({
+          type: "age",
+          reason: "Please set your age in your profile to access this content.",
+          requiresAge: true
+        });
+      } else if (userAge < 18) {
+        accessControl.canReadChapters = false;
+        accessControl.restrictions.push({
+          type: "age",
+          reason: "You must be 18 years or older to access adult content.",
+          currentAge: userAge,
+          requiredAge: 18
+        });
+      }
+    }
+  }
+
   // --- PREMIUM CONTENT CHECK ---
   if (book.isPremium) {
-    if (!tokenUser || !tokenUser.id) {
-      throw new AppError("SUBSCRIPTION_REQUIRED");
-    }
+    // Authors and admins bypass subscription requirements
+    if (!isAuthor && !isAdmin) {
+      if (!tokenUser || !tokenUser.id) {
+        accessControl.canReadChapters = false;
+        accessControl.restrictions.push({
+          type: "subscription",
+          reason: "This content requires an active subscription. Please log in and subscribe.",
+          requiresLogin: true,
+          requiresSubscription: true
+        });
+      } else {
+        const dbUser = await User.findById(tokenUser.id);
+        if (dbUser) {
+          // Check and handle expired subscriptions (auto-downgrade to free)
+          await checkAndHandleExpiredSubscription(dbUser);
 
-    const dbUser = await User.findById(tokenUser.id);
-    if (!dbUser) {
-      throw new AppError("USER_NOT_FOUND");
-    }
+          const isSubscriptionActive =
+            dbUser.subscriptionStatus === "active" &&
+            dbUser.subscriptionExpiresAt &&
+            new Date() < new Date(dbUser.subscriptionExpiresAt);
 
-    // Allow the author to view their own premium book and admins to view all
-    const isBookAuthor = book.author.toString() === tokenUser.id;
-    const isAdmin = tokenUser.role === "ADMIN";
-
-    if (!isBookAuthor && !isAdmin) {
-      // Check and handle expired subscriptions (auto-downgrade to free)
-      await checkAndHandleExpiredSubscription(dbUser);
-
-      const isSubscriptionActive =
-        dbUser.subscriptionStatus === "active" &&
-        dbUser.subscriptionExpiresAt &&
-        new Date() < new Date(dbUser.subscriptionExpiresAt);
-
-      if (!isSubscriptionActive) {
-        throw new AppError("SUBSCRIPTION_REQUIRED");
+          if (!isSubscriptionActive) {
+            accessControl.canReadChapters = false;
+            accessControl.restrictions.push({
+              type: "subscription",
+              reason: "This content requires an active subscription. Please subscribe to continue reading.",
+              requiresSubscription: true,
+              currentPlan: dbUser.plan || "free"
+            });
+          }
+        }
       }
     }
   }
 
   // --- FETCH SPECIFIC CHAPTER ---
-  const chapter = await ChapterModel.findOne({
-    book: bookId,
-    chapterNumber: chapterNumber,
-  }).lean();
+  let chapter = null;
 
-  if (!chapter) {
-    throw new AppError("CHAPTER_NOT_FOUND", "Chapter not found.");
-  }
-
-  // Get total chapter count for navigation
+  // Get total chapter count for navigation (always available)
   const totalChapters = await ChapterModel.countDocuments({ book: bookId });
 
-  return {
-    ...chapter,
-    bookTitle: book.title,
-    navigation: {
-      hasNext: chapterNumber < totalChapters,
-      hasPrevious: chapterNumber > 1,
-      totalChapters,
-    },
-  };
+  if (accessControl.canReadChapters) {
+    chapter = await ChapterModel.findOne({
+      book: bookId,
+      chapterNumber: chapterNumber,
+    }).lean();
+
+    if (!chapter) {
+      throw new AppError("CHAPTER_NOT_FOUND", "Chapter not found.");
+    }
+
+    return {
+      ...chapter,
+      bookTitle: book.title,
+      accessControl,
+      navigation: {
+        hasNext: chapterNumber < totalChapters,
+        hasPrevious: chapterNumber > 1,
+        totalChapters,
+      },
+    };
+  } else {
+    // Return limited chapter info when access is restricted
+    const chapterInfo = await ChapterModel.findOne({
+      book: bookId,
+      chapterNumber: chapterNumber,
+    }).select('title chapterNumber').lean();
+
+    if (!chapterInfo) {
+      throw new AppError("CHAPTER_NOT_FOUND", "Chapter not found.");
+    }
+
+    return {
+      _id: chapterInfo._id,
+      title: chapterInfo.title,
+      chapterNumber: chapterInfo.chapterNumber,
+      book: bookId,
+      bookTitle: book.title,
+      content: null, // Content hidden due to restrictions
+      accessControl,
+      navigation: {
+        hasNext: chapterNumber < totalChapters,
+        hasPrevious: chapterNumber > 1,
+        totalChapters,
+      },
+    };
+  }
 }
