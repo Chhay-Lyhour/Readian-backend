@@ -13,6 +13,25 @@ if (!process.env.MONGO_URI || !process.env.TEST_MONGO_URI) {
   process.exit(1);
 }
 
+// Validate SendGrid configuration
+if (!process.env.SENDGRID_API_KEY) {
+  console.error("FATAL ERROR: SENDGRID_API_KEY is not defined.");
+  console.error("Get your API key from: https://app.sendgrid.com/settings/api_keys");
+  process.exit(1);
+}
+
+if (!process.env.SENDGRID_FROM_EMAIL) {
+  console.error("FATAL ERROR: SENDGRID_FROM_EMAIL is not defined.");
+  console.error("Verify your sender at: https://app.sendgrid.com/settings/sender_auth");
+  process.exit(1);
+}
+
+// Validate SendGrid API key format
+if (!process.env.SENDGRID_API_KEY.startsWith('SG.')) {
+  console.error("FATAL ERROR: SENDGRID_API_KEY appears to be invalid (must start with 'SG.')");
+  process.exit(1);
+}
+
 const config = {
   port: process.env.PORT || 5001,
   nodeEnv: process.env.NODE_ENV || "development",
@@ -30,10 +49,8 @@ const config = {
 
   emailVerificationExpiry: process.env.EMAIL_VERIFICATION_EXPIRY || "900",
 
-  gmailHost: process.env.GMAIL_HOST,
-  gmailUser: process.env.GMAIL_USER,
-  gmailPass: process.env.GMAIL_PASS,
-  fromEmail: process.env.FROM_EMAIL,
+  sendgridApiKey: process.env.SENDGRID_API_KEY,
+  sendgridFromEmail: process.env.SENDGRID_FROM_EMAIL || process.env.FROM_EMAIL,
 };
 
 export { config };

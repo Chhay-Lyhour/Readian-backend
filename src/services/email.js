@@ -1,14 +1,10 @@
-import nodemailer from "nodemailer";
+import sgMail from "@sendgrid/mail";
 import { config } from "../config/config.js";
 import { AppError } from "../utils/errorHandler.js";
 import { createEmailVerification } from "../repositories/authRepositories.js";
 
-const transporter = nodemailer.createTransport({
-  host: config.gmailHost,
-  port: 587,
-  secure: false, // true for 465, false for other ports
-  auth: { user: config.gmailUser, pass: config.gmailPass },
-});
+// Initialize SendGrid with API key
+sgMail.setApiKey(config.sendgridApiKey);
 
 const generateVerificationCode = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
@@ -24,10 +20,39 @@ const emailHTMLTemplate = (title, message, code) => `
 
 const sendEmail = async (to, subject, html) => {
   try {
-    await transporter.sendMail({ from: config.fromEmail, to, subject, html });
+    const msg = {
+      to,
+      from: config.sendgridFromEmail,
+      subject,
+      html,
+    };
+    await sgMail.send(msg);
     console.log(`Email sent successfully to ${to}`);
   } catch (error) {
     console.error(`Email service error for ${to}:`, error);
+
+    // Log detailed SendGrid error
+    if (error.response) {
+      console.error("SendGrid Error Code:", error.code);
+      console.error(
+        "SendGrid Error Body:",
+        JSON.stringify(error.response.body, null, 2)
+      );
+    }
+
+    // Provide more specific error messages
+    if (error.code === 401) {
+      console.error("❌ SendGrid API Key is INVALID or EXPIRED");
+      console.error(
+        "Solution: Generate a new API key at https://app.sendgrid.com/settings/api_keys"
+      );
+    } else if (error.code === 403) {
+      console.error("❌ Sender email is NOT VERIFIED in SendGrid");
+      console.error(
+        "Solution: Verify your sender at https://app.sendgrid.com/settings/sender_auth"
+      );
+    }
+
     throw new AppError("EMAIL_SERVICE_ERROR");
   }
 };
