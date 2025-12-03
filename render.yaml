@@ -1,0 +1,105 @@
+services:
+  # Backend API Service
+  - type: web
+    name: readian-backend
+    runtime: node
+    env: node
+    region: oregon # Change to your preferred region: oregon, frankfurt, singapore, etc.
+    plan: free # Change to 'starter' or higher for production
+    branch: main
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      # Node Environment
+      - key: NODE_ENV
+        value: production
+
+      # Server Configuration
+      - key: PORT
+        value: 10000 # Render's default port
+
+      # MongoDB Configuration (REQUIRED - Add in Render Dashboard)
+      - key: MONGO_URI
+        sync: false # Set manually in Render dashboard
+
+      - key: TEST_MONGO_URI
+        sync: false # Set manually in Render dashboard
+
+      # JWT Secrets (REQUIRED - Add in Render Dashboard)
+      - key: JWT_ACCESS_SECRET
+        sync: false # Set manually - use a strong random string
+
+      - key: JWT_REFRESH_SECRET
+        sync: false # Set manually - use a different strong random string
+
+      - key: JWT_ACCESS_EXPIRY
+        value: 3600 # 1 hour in seconds
+
+      - key: JWT_REFRESH_EXPIRY
+        value: 1209600 # 14 days in seconds
+
+      # SendGrid Configuration (REQUIRED - Add in Render Dashboard)
+      - key: SENDGRID_API_KEY
+        sync: false # Set manually - get from SendGrid dashboard
+
+      - key: SENDGRID_FROM_EMAIL
+        sync: false # Set manually - your verified sender email
+
+      # Bcrypt Configuration
+      - key: BCRYPT_SALT_ROUNDS
+        value: 12
+
+      # Email Verification
+      - key: EMAIL_VERIFICATION_EXPIRY
+        value: 900 # 15 minutes in seconds
+
+      # CORS Configuration
+      - key: CORS_ORIGIN
+        value: https://your-frontend-url.com # Update with your frontend URL
+
+      - key: FRONTEND_URL
+        value: https://your-frontend-url.com # Update with your frontend URL
+
+      # Cloudinary Configuration (if using Cloudinary)
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false # Set manually if using Cloudinary
+
+      - key: CLOUDINARY_API_KEY
+        sync: false # Set manually if using Cloudinary
+
+      - key: CLOUDINARY_API_SECRET
+        sync: false # Set manually if using Cloudinary
+
+# DEPLOYMENT INSTRUCTIONS:
+#
+# 1. Push this render.yaml file to your main branch on GitHub
+# 2. Go to https://dashboard.render.com/
+# 3. Click "New +" and select "Blueprint"
+# 4. Connect your GitHub repository (Chhay-Lyhour/Readian-backend)
+# 5. Render will detect the render.yaml file automatically
+# 6. Click "Apply" to create the service
+#
+# 7. IMPORTANT: Set the following environment variables in the Render Dashboard:
+#    - MONGO_URI: Your MongoDB connection string
+#    - TEST_MONGO_URI: Your test MongoDB connection string
+#    - JWT_ACCESS_SECRET: A strong random string (e.g., generate with: openssl rand -base64 32)
+#    - JWT_REFRESH_SECRET: A different strong random string
+#    - SENDGRID_API_KEY: Your SendGrid API key (starts with SG.)
+#    - SENDGRID_FROM_EMAIL: Your verified sender email in SendGrid
+#    - CORS_ORIGIN: Your frontend URL
+#    - FRONTEND_URL: Your frontend URL
+#    - CLOUDINARY_CLOUD_NAME: (if using Cloudinary)
+#    - CLOUDINARY_API_KEY: (if using Cloudinary)
+#    - CLOUDINARY_API_SECRET: (if using Cloudinary)
+#
+# 8. Your backend will be deployed at: https://readian-backend.onrender.com
+#
+# 9. Update your frontend to use this URL as the API endpoint
+#
+# NOTES:
+# - Free tier services spin down after 15 minutes of inactivity
+# - First request after spin down may take 30-60 seconds
+# - For production, upgrade to Starter plan ($7/month) for better performance
+# - Health check endpoint must return 200 OK for service to be considered healthy
+
