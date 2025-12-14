@@ -93,9 +93,17 @@ const ERROR_MAP = {
     statusCode: 403,
     message: "You must be 18 years or older to access adult content.",
   },
+  AGE_RESTRICTION: {
+    statusCode: 403,
+    message: "Authors under 18 years old cannot create adult content.",
+  },
   AGE_NOT_SET: {
     statusCode: 403,
     message: "Please set your age in your profile to access this content.",
+  },
+  AUTHOR_NOT_FOUND: {
+    statusCode: 404,
+    message: "Author not found.",
   },
   AUTHENTICATION_REQUIRED: {
     statusCode: 401,

@@ -16,6 +16,19 @@ import mongoose from "mongoose";
 export async function createBook(bookData, authorId, file) {
   const { chapters, ...restOfBookData } = bookData;
 
+  // Check if underage author is trying to create adult content
+  const author = await User.findById(authorId);
+  if (!author) {
+    throw new AppError("AUTHOR_NOT_FOUND", "Author not found.");
+  }
+
+  if (restOfBookData.contentType === "adult" && author.age && author.age < 18) {
+    throw new AppError(
+      "AGE_RESTRICTION",
+      "Authors under 18 years old cannot create adult content."
+    );
+  }
+
   if (file) {
     const imageUrl = await uploadFromBuffer(file.buffer, "book_covers");
     restOfBookData.image = imageUrl;
@@ -466,6 +479,21 @@ export async function updateBookById(bookId, updateData, authorId, file) {
     throw new AppError("INSUFFICIENT_PERMISSIONS");
   }
 
+  // Check if underage author is trying to update to adult content
+  if (updateData.contentType === "adult") {
+    const author = await User.findById(authorId);
+    if (!author) {
+      throw new AppError("AUTHOR_NOT_FOUND", "Author not found.");
+    }
+
+    if (author.age && author.age < 18) {
+      throw new AppError(
+        "AGE_RESTRICTION",
+        "Authors under 18 years old cannot create adult content."
+      );
+    }
+  }
+
   if (file) {
     const imageUrl = await uploadFromBuffer(file.buffer, "book_covers", file.originalname);
     updateData.image = imageUrl;
@@ -634,6 +662,21 @@ export async function updateContentType(bookId, contentType, authorId) {
       "INVALID_CONTENT_TYPE",
       "Content type must be 'kids' or 'adult'."
     );
+  }
+
+  // Check if underage author is trying to set adult content
+  if (contentType === "adult") {
+    const author = await User.findById(authorId);
+    if (!author) {
+      throw new AppError("AUTHOR_NOT_FOUND", "Author not found.");
+    }
+
+    if (author.age && author.age < 18) {
+      throw new AppError(
+        "AGE_RESTRICTION",
+        "Authors under 18 years old cannot create adult content."
+      );
+    }
   }
 
   book.contentType = contentType;
