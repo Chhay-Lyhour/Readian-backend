@@ -10,6 +10,7 @@ import adminRouter from "./routes/adminRoute.js";
 import analyticsRouter from "./routes/analyticsRoute.js";
 import downloadRouter from "./routes/downloadRoute.js";
 import ratingRouter from "./routes/ratingRoute.js";
+import authorRouter from "./routes/authorRoute.js";
 import cors from "cors";
 import helmet from "helmet";
 import {
@@ -63,6 +64,7 @@ app.use("/api/books", bookRouter);
 app.use("/api/books", ratingRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
+app.use("/api/authors", authorRouter); // Public author profiles
 app.use("/api/subscriptions", subscriptionRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/analytics", analyticsRouter);

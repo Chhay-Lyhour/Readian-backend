@@ -145,8 +145,18 @@ export async function getAuthorStats(req, res, next) {
 export async function getLikedBooks(req, res, next) {
   try {
     const { page, limit } = req.query;
-    const books = await userService.getLikedBooks(req.user.id, { page, limit });
-    sendSuccessResponse(res, books, "Liked books retrieved successfully.");
+    const result = await userService.getLikedBooks(req.user.id, { page, limit });
+    sendSuccessResponse(res, result, "Liked books retrieved successfully.");
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getAuthorProfile(req, res, next) {
+  try {
+    const { page, limit } = req.query;
+    const authorProfile = await userService.getAuthorProfile(req.params.authorId, { page, limit });
+    sendSuccessResponse(res, authorProfile, "Author profile retrieved successfully.");
   } catch (error) {
     next(error);
   }

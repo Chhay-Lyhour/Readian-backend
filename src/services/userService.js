@@ -239,3 +239,98 @@ export async function getLikedBooks(userId, options = {}) {
     }
   };
 }
+
+/**
+ * Get public author profile with their books
+ * @param {string} authorId - The ID of the author
+ * @param {object} options - Pagination options for books
+ * @returns {object} Author profile with books
+ */
+export async function getAuthorProfile(authorId, options = {}) {
+  // Find the author
+  const author = await userRepo.findUserById(authorId);
+  if (!author) {
+    throw new AppError("USER_NOT_FOUND", "Author not found.");
+  }
+
+  // Check if user is an author
+  if (author.role !== "AUTHOR" && author.role !== "ADMIN") {
+    throw new AppError("NOT_FOUND", "This user is not an author.");
+  }
+
+  // Get pagination parameters
+  const page = Math.max(1, parseInt(options.page) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(options.limit) || 10));
+  const skip = (page - 1) * limit;
+
+  // Count total published books by this author
+  const totalBooks = await BookModel.countDocuments({
+    author: authorId,
+    status: "published"
+  });
+
+  // Get author's published books with pagination
+  const ChapterModel = (await import("../models/chapterModel.js")).default;
+
+  const books = await BookModel.find({
+    author: authorId,
+    status: "published"
+  })
+    .select("title description genre tags image isPremium likes likedBy viewCount averageRating totalRatings publishedDate createdAt bookStatus contentType")
+    .sort({ publishedDate: -1 })
+    .skip(skip)
+    .limit(limit)
+    .lean();
+
+  // Add chapter count to each book
+  const booksWithChapters = await Promise.all(
+    books.map(async (book) => {
+      const totalChapters = await ChapterModel.countDocuments({ book: book._id });
+      return {
+        ...book,
+        totalChapters,
+        totalLikes: book.likedBy ? book.likedBy.length : 0
+      };
+    })
+  );
+
+  // Calculate total stats across all author's books
+  const allBooks = await BookModel.find({
+    author: authorId,
+    status: "published"
+  }).select("viewCount likes likedBy averageRating").lean();
+
+  const totalViews = allBooks.reduce((sum, book) => sum + (book.viewCount || 0), 0);
+  const totalLikes = allBooks.reduce((sum, book) => sum + (book.likedBy ? book.likedBy.length : 0), 0);
+  const averageRating = allBooks.length > 0
+    ? allBooks.reduce((sum, book) => sum + (book.averageRating || 0), 0) / allBooks.length
+    : 0;
+
+  const totalPages = Math.ceil(totalBooks / limit);
+
+  return {
+    author: {
+      _id: author._id,
+      name: author.name,
+      email: author.email,
+      avatar: author.avatar,
+      coverImage: author.coverImage,
+      bio: author.bio,
+      role: author.role,
+      createdAt: author.createdAt
+    },
+    stats: {
+      totalBooks,
+      totalViews,
+      totalLikes,
+      averageRating: parseFloat(averageRating.toFixed(1))
+    },
+    books: booksWithChapters,
+    pagination: {
+      currentPage: page,
+      totalPages,
+      totalBooks,
+      hasMore: page < totalPages
+    }
+  };
+}
