@@ -1,5 +1,7 @@
 import BookModel from "../models/bookModel.js";
 import DownloadModel from "../models/downloadModel.js";
+import { User } from "../models/userModel.js";
+import SubscriptionTransactionModel from "../models/subscriptionTransactionModel.js";
 
 /**
  * Gathers public analytics, such as top books and authors.
@@ -117,4 +119,286 @@ export async function getPublicAnalytics() {
   ]);
 
   return { topBooks, topAuthors };
+}
+
+/**
+ * Get user growth analytics for admin dashboard
+ * @param {string} period - 'week', 'month', or 'year'
+ * @returns {object} User growth data with daily breakdown
+ */
+export async function getUserGrowthAnalytics(period = 'week') {
+  const now = new Date();
+  let startDate;
+  let dateFormat;
+  let groupBy;
+
+  // Define period ranges
+  switch (period) {
+    case 'week':
+      // Last 7 days
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      dateFormat = '%Y-%m-%d';
+      groupBy = {
+        year: { $year: '$createdAt' },
+        month: { $month: '$createdAt' },
+        day: { $dayOfMonth: '$createdAt' }
+      };
+      break;
+    case 'month':
+      // Last 30 days
+      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      dateFormat = '%Y-%m-%d';
+      groupBy = {
+        year: { $year: '$createdAt' },
+        month: { $month: '$createdAt' },
+        day: { $dayOfMonth: '$createdAt' }
+      };
+      break;
+    case 'year':
+      // Last 12 months
+      startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+      dateFormat = '%Y-%m';
+      groupBy = {
+        year: { $year: '$createdAt' },
+        month: { $month: '$createdAt' }
+      };
+      break;
+    default:
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      dateFormat = '%Y-%m-%d';
+      groupBy = {
+        year: { $year: '$createdAt' },
+        month: { $month: '$createdAt' },
+        day: { $dayOfMonth: '$createdAt' }
+      };
+  }
+
+  // Aggregate user registrations
+  const growthData = await User.aggregate([
+    {
+      $match: {
+        createdAt: { $gte: startDate, $lte: now }
+      }
+    },
+    {
+      $group: {
+        _id: groupBy,
+        count: { $sum: 1 },
+        date: { $first: '$createdAt' }
+      }
+    },
+    {
+      $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 }
+    },
+    {
+      $project: {
+        _id: 0,
+        date: { $dateToString: { format: dateFormat, date: '$date' } },
+        count: 1
+      }
+    }
+  ]);
+
+  // Calculate cumulative growth
+  let cumulative = 0;
+  const dataWithCumulative = growthData.map(item => {
+    cumulative += item.count;
+    return {
+      date: item.date,
+      newUsers: item.count,
+      cumulative: cumulative
+    };
+  });
+
+  // Get total users for context
+  const totalUsers = await User.countDocuments();
+  const newUsersInPeriod = growthData.reduce((sum, item) => sum + item.count, 0);
+
+  return {
+    period,
+    periodLabel: period === 'week' ? 'Last 7 Days' : period === 'month' ? 'Last 30 Days' : 'Last 12 Months',
+    startDate,
+    endDate: now,
+    data: dataWithCumulative,
+    summary: {
+      totalUsers,
+      newUsersInPeriod,
+      growthRate: totalUsers > 0 ? ((newUsersInPeriod / totalUsers) * 100).toFixed(2) : 0
+    }
+  };
+}
+
+/**
+ * Get revenue growth analytics for admin dashboard
+ * @param {string} period - 'week', 'month', or 'year'
+ * @returns {object} Revenue growth data
+ */
+export async function getRevenueGrowthAnalytics(period = 'week') {
+  const now = new Date();
+  let startDate;
+  let dateFormat;
+  let groupBy;
+
+  switch (period) {
+    case 'week':
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      dateFormat = '%Y-%m-%d';
+      groupBy = {
+        year: { $year: '$createdAt' },
+        month: { $month: '$createdAt' },
+        day: { $dayOfMonth: '$createdAt' }
+      };
+      break;
+    case 'month':
+      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      dateFormat = '%Y-%m-%d';
+      groupBy = {
+        year: { $year: '$createdAt' },
+        month: { $month: '$createdAt' },
+        day: { $dayOfMonth: '$createdAt' }
+      };
+      break;
+    case 'year':
+      startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+      dateFormat = '%Y-%m';
+      groupBy = {
+        year: { $year: '$createdAt' },
+        month: { $month: '$createdAt' }
+      };
+      break;
+    default:
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      dateFormat = '%Y-%m-%d';
+      groupBy = {
+        year: { $year: '$createdAt' },
+        month: { $month: '$createdAt' },
+        day: { $dayOfMonth: '$createdAt' }
+      };
+  }
+
+  const revenueData = await SubscriptionTransactionModel.aggregate([
+    {
+      $match: {
+        createdAt: { $gte: startDate, $lte: now },
+        status: 'completed'
+      }
+    },
+    {
+      $group: {
+        _id: groupBy,
+        revenue: { $sum: '$amount' },
+        transactions: { $sum: 1 },
+        date: { $first: '$createdAt' }
+      }
+    },
+    {
+      $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 }
+    },
+    {
+      $project: {
+        _id: 0,
+        date: { $dateToString: { format: dateFormat, date: '$date' } },
+        revenue: { $round: ['$revenue', 2] },
+        transactions: 1
+      }
+    }
+  ]);
+
+  // Calculate cumulative revenue
+  let cumulative = 0;
+  const dataWithCumulative = revenueData.map(item => {
+    cumulative += item.revenue;
+    return {
+      date: item.date,
+      revenue: item.revenue,
+      transactions: item.transactions,
+      cumulative: parseFloat(cumulative.toFixed(2))
+    };
+  });
+
+  // Get total revenue
+  const totalRevenueResult = await SubscriptionTransactionModel.aggregate([
+    { $match: { status: 'completed' } },
+    { $group: { _id: null, total: { $sum: '$amount' } } }
+  ]);
+  const totalRevenue = totalRevenueResult[0]?.total || 0;
+  const revenueInPeriod = revenueData.reduce((sum, item) => sum + item.revenue, 0);
+
+  // Revenue by plan
+  const revenueByPlan = await SubscriptionTransactionModel.aggregate([
+    {
+      $match: {
+        createdAt: { $gte: startDate, $lte: now },
+        status: 'completed'
+      }
+    },
+    {
+      $group: {
+        _id: '$plan',
+        revenue: { $sum: '$amount' },
+        transactions: { $sum: 1 }
+      }
+    }
+  ]);
+
+  return {
+    period,
+    periodLabel: period === 'week' ? 'Last 7 Days' : period === 'month' ? 'Last 30 Days' : 'Last 12 Months',
+    startDate,
+    endDate: now,
+    data: dataWithCumulative,
+    summary: {
+      totalRevenue: parseFloat(totalRevenue.toFixed(2)),
+      revenueInPeriod: parseFloat(revenueInPeriod.toFixed(2)),
+      revenueByPlan: revenueByPlan.map(item => ({
+        plan: item._id,
+        revenue: parseFloat(item.revenue.toFixed(2)),
+        transactions: item.transactions
+      }))
+    }
+  };
+}
+
+/**
+ * Get comprehensive admin dashboard analytics
+ * Includes user growth and revenue for multiple periods
+ */
+export async function getAdminDashboardAnalytics() {
+  const now = new Date();
+
+  // Get existing dashboard stats
+  const { getDashboardAnalytics } = await import('./adminService.js');
+
+  // Fetch all analytics in parallel
+  const [
+    currentStats,
+    userGrowthWeek,
+    userGrowthMonth,
+    userGrowthYear,
+    revenueGrowthWeek,
+    revenueGrowthMonth,
+    revenueGrowthYear
+  ] = await Promise.all([
+    getDashboardAnalytics(),
+    getUserGrowthAnalytics('week'),
+    getUserGrowthAnalytics('month'),
+    getUserGrowthAnalytics('year'),
+    getRevenueGrowthAnalytics('week'),
+    getRevenueGrowthAnalytics('month'),
+    getRevenueGrowthAnalytics('year')
+  ]);
+
+  return {
+    currentStats,
+    userGrowth: {
+      week: userGrowthWeek,
+      month: userGrowthMonth,
+      year: userGrowthYear
+    },
+    revenueGrowth: {
+      week: revenueGrowthWeek,
+      month: revenueGrowthMonth,
+      year: revenueGrowthYear
+    }
+  };
 }
