@@ -108,6 +108,36 @@ export async function updateUserProfile(currentUserId, profileData) {
  * @param {object} updateData - The data to update (e.g., name, role).
  */
 export async function updateUserByAdmin(userIdToUpdate, updateData) {
+  // If subscriptionDuration is being updated, calculate the new subscriptionExpiresAt date
+  if (updateData.subscriptionDuration !== undefined) {
+    const user = await userRepo.findUserById(userIdToUpdate);
+    if (!user) {
+      throw new AppError("USER_NOT_FOUND", "No user found with that ID to update.");
+    }
+
+    // Calculate expiration date from now
+    const now = new Date();
+    const expiresAt = new Date(now);
+    expiresAt.setDate(expiresAt.getDate() + updateData.subscriptionDuration);
+    updateData.subscriptionExpiresAt = expiresAt;
+
+    // If setting a subscription duration, also activate the subscription if not specified
+    if (updateData.subscriptionStatus === undefined) {
+      updateData.subscriptionStatus = "active";
+    }
+  }
+
+  // If subscriptionStatus is being set to inactive, clear subscription fields
+  if (updateData.subscriptionStatus === "inactive") {
+    updateData.subscriptionExpiresAt = null;
+    if (updateData.subscriptionDuration === undefined) {
+      updateData.subscriptionDuration = null;
+    }
+    if (updateData.plan === undefined) {
+      updateData.plan = "free";
+    }
+  }
+
   const updatedUser = await userRepo.updateUserById(userIdToUpdate, updateData);
   if (!updatedUser) {
     throw new AppError(
