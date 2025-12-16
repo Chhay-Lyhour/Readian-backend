@@ -1,7 +1,6 @@
 import BookModel from "../models/bookModel.js";
 import DownloadModel from "../models/downloadModel.js";
 import { User } from "../models/userModel.js";
-import SubscriptionTransactionModel from "../models/subscriptionTransactionModel.js";
 
 /**
  * Gathers public analytics, such as top books and authors.
@@ -230,6 +229,7 @@ export async function getUserGrowthAnalytics(period = 'week') {
 
 /**
  * Get revenue growth analytics for admin dashboard
+ * Based on active subscriptions and their activation dates
  * @param {string} period - 'week', 'month', or 'year'
  * @returns {object} Revenue growth data
  */
@@ -237,72 +237,122 @@ export async function getRevenueGrowthAnalytics(period = 'week') {
   const now = new Date();
   let startDate;
   let dateFormat;
-  let groupBy;
+  let dateArray = [];
 
+  // Define pricing for subscription plans
+  const planPricing = {
+    basic: 5,
+    premium: 10,
+    free: 0
+  };
+
+  // Define period ranges and generate date array
   switch (period) {
     case 'week':
+      // Last 7 days
       startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      dateFormat = '%Y-%m-%d';
-      groupBy = {
-        year: { $year: '$createdAt' },
-        month: { $month: '$createdAt' },
-        day: { $dayOfMonth: '$createdAt' }
-      };
+      dateFormat = 'YYYY-MM-DD';
+
+      // Generate array of last 7 days
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        dateArray.push(date.toISOString().split('T')[0]);
+      }
       break;
+
     case 'month':
+      // Last 30 days
       startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      dateFormat = '%Y-%m-%d';
-      groupBy = {
-        year: { $year: '$createdAt' },
-        month: { $month: '$createdAt' },
-        day: { $dayOfMonth: '$createdAt' }
-      };
+      dateFormat = 'YYYY-MM-DD';
+
+      // Generate array of last 30 days
+      for (let i = 29; i >= 0; i--) {
+        const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        dateArray.push(date.toISOString().split('T')[0]);
+      }
       break;
+
     case 'year':
+      // Last 12 months
       startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-      dateFormat = '%Y-%m';
-      groupBy = {
-        year: { $year: '$createdAt' },
-        month: { $month: '$createdAt' }
-      };
+      dateFormat = 'YYYY-MM';
+
+      // Generate array of last 12 months
+      for (let i = 11; i >= 0; i--) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        dateArray.push(`${year}-${month}`);
+      }
       break;
+
     default:
       startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      dateFormat = '%Y-%m-%d';
-      groupBy = {
-        year: { $year: '$createdAt' },
-        month: { $month: '$createdAt' },
-        day: { $dayOfMonth: '$createdAt' }
-      };
+      dateFormat = 'YYYY-MM-DD';
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        dateArray.push(date.toISOString().split('T')[0]);
+      }
   }
 
-  const revenueData = await SubscriptionTransactionModel.aggregate([
-    {
-      $match: {
-        createdAt: { $gte: startDate, $lte: now },
-        status: 'completed'
-      }
-    },
-    {
-      $group: {
-        _id: groupBy,
-        revenue: { $sum: '$amount' },
-        transactions: { $sum: 1 },
-        date: { $first: '$createdAt' }
-      }
-    },
-    {
-      $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 }
-    },
-    {
-      $project: {
-        _id: 0,
-        date: { $dateToString: { format: dateFormat, date: '$date' } },
-        revenue: { $round: ['$revenue', 2] },
-        transactions: 1
+  // Get all users who became active subscribers within the period
+  // We'll track when their subscription became active (updatedAt when subscriptionStatus changed to active)
+  const users = await User.find({
+    subscriptionStatus: 'active',
+    plan: { $in: ['basic', 'premium'] },
+    subscriptionExpiresAt: { $exists: true, $ne: null }
+  }).select('plan subscriptionStatus subscriptionExpiresAt subscriptionDuration updatedAt createdAt').lean();
+
+  // Initialize revenue map for each date
+  const revenueMap = {};
+  const subscriptionCountMap = {};
+
+  dateArray.forEach(date => {
+    revenueMap[date] = 0;
+    subscriptionCountMap[date] = 0;
+  });
+
+  // Calculate revenue for each user subscription
+  // We estimate the subscription start date based on expiresAt and duration
+  users.forEach(user => {
+    if (!user.subscriptionExpiresAt || !user.subscriptionDuration) return;
+
+    // Calculate when subscription started (expiresAt - duration days)
+    const expiresAt = new Date(user.subscriptionExpiresAt);
+    const startedAt = new Date(expiresAt.getTime() - user.subscriptionDuration * 24 * 60 * 60 * 1000);
+
+    // Only count if subscription started within our period
+    if (startedAt >= startDate && startedAt <= now) {
+      const revenue = planPricing[user.plan] || 0;
+
+      if (period === 'year') {
+        // Group by month
+        const year = startedAt.getFullYear();
+        const month = String(startedAt.getMonth() + 1).padStart(2, '0');
+        const dateKey = `${year}-${month}`;
+
+        if (revenueMap[dateKey] !== undefined) {
+          revenueMap[dateKey] += revenue;
+          subscriptionCountMap[dateKey] += 1;
+        }
+      } else {
+        // Group by day
+        const dateKey = startedAt.toISOString().split('T')[0];
+
+        if (revenueMap[dateKey] !== undefined) {
+          revenueMap[dateKey] += revenue;
+          subscriptionCountMap[dateKey] += 1;
+        }
       }
     }
-  ]);
+  });
+
+  // Convert to array format for chart
+  const revenueData = dateArray.map(date => ({
+    date,
+    revenue: parseFloat(revenueMap[date].toFixed(2)),
+    subscriptions: subscriptionCountMap[date]
+  }));
 
   // Calculate cumulative revenue
   let cumulative = 0;
@@ -311,35 +361,39 @@ export async function getRevenueGrowthAnalytics(period = 'week') {
     return {
       date: item.date,
       revenue: item.revenue,
-      transactions: item.transactions,
+      subscriptions: item.subscriptions,
       cumulative: parseFloat(cumulative.toFixed(2))
     };
   });
 
-  // Get total revenue
-  const totalRevenueResult = await SubscriptionTransactionModel.aggregate([
-    { $match: { status: 'completed' } },
-    { $group: { _id: null, total: { $sum: '$amount' } } }
-  ]);
-  const totalRevenue = totalRevenueResult[0]?.total || 0;
+  // Calculate total revenue (all active subscriptions)
+  const totalRevenue = users.reduce((sum, user) => {
+    return sum + (planPricing[user.plan] || 0);
+  }, 0);
+
+  // Revenue in current period
   const revenueInPeriod = revenueData.reduce((sum, item) => sum + item.revenue, 0);
 
+  // Calculate monthly recurring revenue (MRR) - all active subscriptions
+  const activeBasicCount = users.filter(u => u.plan === 'basic').length;
+  const activePremiumCount = users.filter(u => u.plan === 'premium').length;
+  const monthlyRecurringRevenue = (activeBasicCount * planPricing.basic) + (activePremiumCount * planPricing.premium);
+
   // Revenue by plan
-  const revenueByPlan = await SubscriptionTransactionModel.aggregate([
+  const revenueByPlan = [
     {
-      $match: {
-        createdAt: { $gte: startDate, $lte: now },
-        status: 'completed'
-      }
+      plan: 'basic',
+      revenue: activeBasicCount * planPricing.basic,
+      subscriptions: activeBasicCount,
+      price: planPricing.basic
     },
     {
-      $group: {
-        _id: '$plan',
-        revenue: { $sum: '$amount' },
-        transactions: { $sum: 1 }
-      }
+      plan: 'premium',
+      revenue: activePremiumCount * planPricing.premium,
+      subscriptions: activePremiumCount,
+      price: planPricing.premium
     }
-  ]);
+  ];
 
   return {
     period,
@@ -350,11 +404,10 @@ export async function getRevenueGrowthAnalytics(period = 'week') {
     summary: {
       totalRevenue: parseFloat(totalRevenue.toFixed(2)),
       revenueInPeriod: parseFloat(revenueInPeriod.toFixed(2)),
-      revenueByPlan: revenueByPlan.map(item => ({
-        plan: item._id,
-        revenue: parseFloat(item.revenue.toFixed(2)),
-        transactions: item.transactions
-      }))
+      monthlyRecurringRevenue: parseFloat(monthlyRecurringRevenue.toFixed(2)),
+      activeSubscriptions: activeBasicCount + activePremiumCount,
+      revenueByPlan: revenueByPlan,
+      growthRate: totalRevenue > 0 ? ((revenueInPeriod / totalRevenue) * 100).toFixed(2) : 0
     }
   };
 }
